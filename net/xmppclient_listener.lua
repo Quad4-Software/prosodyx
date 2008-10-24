@@ -22,7 +22,7 @@ local xmppclient = { default_port = 5222 };
 
 local function session_reset_stream(session)
 	-- Reset stream
-		local parser = lxp.new(init_xmlhandlers(session, sm_streamopened), ":");
+		local parser = lxp.new(init_xmlhandlers(session, sm_streamopened), "|");
 		session.parser = parser;
 		
 		session.notopen = true;
