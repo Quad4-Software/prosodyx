@@ -104,6 +104,7 @@ room_mt.get_occupant_id = occupant_id.get_occupant_id;
 local jid_split = require "prosody.util.jid".split;
 local jid_prep = require "prosody.util.jid".prep;
 local jid_bare = require "prosody.util.jid".bare;
+local jid_resource = require "prosody.util.jid".resource;
 local st = require "prosody.util.stanza";
 local cache = require "prosody.util.cache";
 
@@ -444,6 +445,7 @@ end);
 local function is_join_presence(stanza)
 	return stanza.name == "presence"
 		and stanza.attr.type == nil
+		and jid_resource(stanza.attr.to) ~= nil
 		and stanza:get_child("x", "http://jabber.org/protocol/muc");
 end
 
