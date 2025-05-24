@@ -192,7 +192,7 @@ function route_to_existing_session(event)
 
 	-- We have a connection to this host already
 	if host.type == "s2sout_unauthed" and (stanza.name ~= "db:verify" or not host.dialback_key) then
-		(host.log or log)("debug", "trying to send over unauthed s2sout to "..to_host);
+		(host.log or log)("debug", "trying to send over unauthed s2sout to %s", to_host);
 
 		-- Queue stanza until we are able to send it
 		if not host.sendq then
