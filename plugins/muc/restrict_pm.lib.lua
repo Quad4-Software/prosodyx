@@ -11,15 +11,19 @@ local compat_map = {
 	participants = "participant";
 	moderators = "moderator";
 	members = "affiliated";
+	anyone = "visitor";
 };
 
 local function get_allow_pm(room)
 	local val = room._data.allow_pm;
-	return compat_map[val] or val or "visitor";
+	val = compat_map[val] or val or "visitor";
+	if not (val == "affiliated" or valid_roles[val]) then return "visitor"; end
+	return val;
 end
 
 local function set_allow_pm(room, val)
 	if get_allow_pm(room) == val then return false; end
+	if not (val == "affiliated" or valid_roles[val]) then return false end
 	room._data.allow_pm = val;
 	return true;
 end
@@ -93,8 +97,10 @@ module:hook("muc-private-message", function(event)
 	local pmval = get_allow_pm(room);
 
 	if pmval ~= "none" then
-		if pmval == "affiliated" and room:get_affiliation(from_occupant.bare_jid) then
-			return; -- Allow from affiliated users
+		if pmval == "affiliated" then
+			if room:get_affiliation(from_occupant.bare_jid) then
+				return; -- Allow from affiliated users
+			end
 		elseif valid_roles[from_occupant.role] >= valid_roles[pmval] then
 			module:log("debug", "Allowing PM: %s(%d) >= %s(%d)", from_occupant.role, valid_roles[from_occupant.role], pmval, valid_roles[pmval]);
 			return; -- Allow from a permitted role
