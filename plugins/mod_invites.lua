@@ -259,7 +259,7 @@ module:add_item("shell-command", {
 	host_selector = "user_jid";
 	flags = {
 		array_params = { role = true, group = have_group_invites };
-		value_params = { expires_after = true };
+		value_params = { expires_after = true, admin = true };
 	};
 
 	handler = function (self, user_jid, opts) --luacheck: ignore 212/self
