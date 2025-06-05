@@ -302,8 +302,7 @@ local function set_room_defaults(room, lang)
 	room:set_changesubject(module:get_option_boolean("muc_room_default_change_subject", room:get_changesubject()));
 	room:set_historylength(module:get_option_integer("muc_room_default_history_length", room:get_historylength(), 0));
 	room:set_language(lang or module:get_option_string("muc_room_default_language"));
-	room:set_presence_broadcast(module:get_option_enum("muc_room_default_presence_broadcast", room:get_presence_broadcast(), "visitor", "participant",
-		"moderator"));
+	room:set_presence_broadcast(module:get_option("muc_room_default_presence_broadcast", room:get_presence_broadcast()));
 	room:set_allow_pm(module:get_option_enum("muc_room_default_allow_pm", room:get_allow_pm(), "visitor", "participant", "moderator"));
 	room:set_allow_modpm(module:get_option_boolean("muc_room_default_always_allow_moderator_pms", room:get_allow_modpm()));
 end
