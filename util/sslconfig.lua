@@ -120,7 +120,7 @@ local function apply(config, new)
 	if type(new) == "table" then
 		for field, value in pairs(new) do
 			-- exclude keys which are internal to the config builder
-			if field:sub(1, 1) ~= "_" then
+			if type(field) == "string" and field:sub(1, 1) ~= "_" then
 				(handlers[field] or rawset)(config, field, value);
 			end
 		end
