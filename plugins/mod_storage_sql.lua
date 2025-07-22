@@ -556,7 +556,7 @@ function archive_store:set(username, key, new_value, new_when, new_with)
 		if new_value then
 			table.insert(setf, '"type" = ?')
 			table.insert(setf, '"value" = ?')
-			local t, value = serialize(new_value);
+			local t, value = assert(serialize(new_value));
 			table.insert(args, 1, t);
 			table.insert(args, 2, value);
 		end
