@@ -7,8 +7,8 @@
 --
 
 local _G = _G;
-local setmetatable, rawget, rawset, io, os, error, dofile, type, pairs, ipairs =
-      setmetatable, rawget, rawset, io, os, error, dofile, type, pairs, ipairs;
+local getmetatable, setmetatable, rawget, rawset, io, os, error, dofile, type, pairs, ipairs =
+      getmetatable, setmetatable, rawget, rawset, io, os, error, dofile, type, pairs, ipairs;
 local format, math_max, t_insert = string.format, math.max, table.insert;
 
 local envload = require"prosody.util.envload".envload;
@@ -169,6 +169,9 @@ do
 			error("Invalid syntax - missing '=' perhaps?", 2);
 		end;
 	};
+	local function is_config_option_proxy(v)
+		return getmetatable(v) == config_option_proxy_mt;
+	end
 
 	-- For reading config values out of files.
 	local function filereader(basepath, defaultmode)
@@ -262,6 +265,9 @@ do
 						t_insert(warnings, ("%s:%d: Duplicate option '%s'"):format(config_file, get_line_number(config_file), k));
 					end
 					set_options[option_path] = true;
+					if is_config_option_proxy(v) then
+						setmetatable(v, nil);
+					end
 					set(config_table, env.__currenthost or "*", k, v);
 				end
 		});
