@@ -149,6 +149,7 @@ local watchers = {
 
 local cm = require "prosody.core.configmanager";
 local hm = require "prosody.core.hostmanager";
+local mm = require "prosody.core.modulemanager";
 local sm = require "prosody.core.storagemanager";
 local um = require "prosody.core.usermanager";
 
@@ -177,6 +178,7 @@ end
 
 local function get_driver(host, conf)
 	prepare_config(host, conf);
+	mm.unload(host, "storage_" .. conf.type);
 	return assert(sm.load_driver(host, conf.type));
 end
 
