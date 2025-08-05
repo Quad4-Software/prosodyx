@@ -51,7 +51,7 @@ local lazy_tlsa_mt = {
 			return h;
 		elseif i == 2 then
 			local h = sha512(t[0]);
-			t[1] = h;
+			t[2] = h;
 			return h;
 		end
 	end;
