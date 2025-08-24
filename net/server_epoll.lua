@@ -966,6 +966,8 @@ function interface:pausefor(t)
 		if self.conn and self.conn:dirty() then
 			self:noise("Have buffered incoming data to process");
 			self:onreadable();
+		else
+			self:setreadtimeout();
 		end
 	end);
 end
