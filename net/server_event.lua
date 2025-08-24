@@ -304,6 +304,14 @@ function interface_mt:ssl_peerfinished()
 	return sock:getpeerfinished();
 end
 
+function interface_mt:ssl_exportkeyingmaterial(label, len, context)
+	local sock = self.conn;
+	if not sock then return nil, "not-connected" end
+	if sock.exportkeyingmaterial then
+		return sock:exportkeyingmaterial(label, len, context);
+	end
+end
+
 function interface_mt:resume()
 	self:_lock(self.nointerface, false, self.nowriting);
 	if self.readcallback and not self.eventread then
