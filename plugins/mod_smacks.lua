@@ -152,16 +152,16 @@ end
 module:hook("stream-features",
 		function (event)
 			if can_do_smacks(event.origin, true) then
-				event.features:tag("sm", sm2_attr):tag("optional"):up():up();
-				event.features:tag("sm", sm3_attr):tag("optional"):up():up();
+				event.features:tag("sm", sm2_attr):up();
+				event.features:tag("sm", sm3_attr):up();
 			end
 		end);
 
 module:hook("s2s-stream-features",
 		function (event)
 			if can_do_smacks(event.origin, true) then
-				event.features:tag("sm", sm2_attr):tag("optional"):up():up();
-				event.features:tag("sm", sm3_attr):tag("optional"):up():up();
+				event.features:tag("sm", sm2_attr):up();
+				event.features:tag("sm", sm3_attr):up();
 			end
 		end);
 
