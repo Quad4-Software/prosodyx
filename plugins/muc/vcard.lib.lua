@@ -62,7 +62,7 @@ module:hook(vcard_event, function (event)
 end, 10);
 
 if advertise_hashes ~= "none" then
-	module:hook("muc-occupant-joined", function (event)
+	module:hook("muc-occupant-session-new", function (event)
 		send_avatar_hash(event.room, event.stanza.attr.from);
 	end);
 	module:hook("vcard-updated", function (event)
