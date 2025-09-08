@@ -10,13 +10,8 @@ local advertise_hashes = module:get_option("muc_avatar_advertise_hashes");
 --luacheck: ignore 113/get_room_from_jid
 
 local function get_avatar_hash(room)
-	if room.avatar_hash then return room.avatar_hash; end
-
 	local room_node = jid.split(room.jid);
-	local hash = mod_vcard.get_avatar_hash(room_node);
-	room.avatar_hash = hash;
-
-	return hash;
+	return mod_vcard.get_avatar_hash(room_node);
 end
 
 local function send_avatar_hash(room, to)
