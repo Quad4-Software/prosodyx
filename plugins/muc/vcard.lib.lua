@@ -10,8 +10,13 @@ local advertise_hashes = module:get_option("muc_avatar_advertise_hashes");
 --luacheck: ignore 113/get_room_from_jid
 
 local function get_avatar_hash(room)
+	if room.avatar_hash then return room.avatar_hash; end
+
 	local room_node = jid.split(room.jid);
-	return mod_vcard.get_avatar_hash(room_node);
+	local hash = mod_vcard.get_avatar_hash(room_node);
+	room.avatar_hash = hash;
+
+	return hash;
 end
 
 local function send_avatar_hash(room, to)
@@ -62,6 +67,7 @@ if advertise_hashes ~= "none" then
 	end);
 	module:hook("vcard-updated", function (event)
 		local room = get_room_from_jid(event.stanza.attr.to);
+		room.avatar_hash = nil;
 		send_avatar_hash(room, nil);
 	end);
 end
