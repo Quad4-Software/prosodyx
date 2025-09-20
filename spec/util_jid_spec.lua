@@ -64,6 +64,8 @@ describe("util.jid", function()
 			test("server/resource", 	nil, 	"server", "resource"        );
 			test("server/resource@foo", 	nil, 	"server", "resource@foo"    );
 			test("server/resource@foo/bar",	nil, 	"server", "resource@foo/bar");
+			test("node@203.0.113.80", "node", "203.0.113.80", nil);
+			test("node@[2001:db8::50:726f:736f:6479]/foo", "node", "[2001:db8::50:726f:736f:6479]", "foo")
 
 			-- Always invalid JIDs
 			test(nil,                nil, nil, nil);
@@ -74,6 +76,9 @@ describe("util.jid", function()
 			test("@server/", nil, nil, nil);
 			test("server/", nil, nil, nil);
 			test("/resource", nil, nil, nil);
+			test("xmpp:test@example.com", nil, nil, nil);
+			test("xmpp:example.com", nil, nil, nil);
+			test("+123@bridge.example.com)", nil, nil, nil);
 		end);
 		it("should reject invalid arguments", function ()
 			assert.has_error(function () jid.prepped_split(false) end)

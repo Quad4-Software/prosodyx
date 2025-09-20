@@ -13,6 +13,8 @@ local match, sub = string.match, string.sub;
 local nodeprep = require "prosody.util.encodings".stringprep.nodeprep;
 local nameprep = require "prosody.util.encodings".stringprep.nameprep;
 local resourceprep = require "prosody.util.encodings".stringprep.resourceprep;
+local idna_to_ascii = require "prosody.util.encodings".idna.to_ascii;
+local net = require "prosody.util.net";
 
 local escapes = {
 	[" "] = "\\20"; ['"'] = "\\22";
@@ -48,6 +50,11 @@ local function bare(jid)
 	return host;
 end
 
+local function valid_ip(ip)
+	local v6 = match(ip, "^%[([%x:.]+)%]$");
+	return net.pton(v6 or ip);
+end
+
 local function prepped_split(jid, strict)
 	local node, host, resource = split(jid);
 	if host ~= nil and host ~= "." then
@@ -56,6 +63,7 @@ local function prepped_split(jid, strict)
 		end
 		host = nameprep(host, strict);
 		if host == nil then return; end
+		if not (valid_ip(host) or idna_to_ascii(host)) then return; end
 		if node ~= nil then
 			node = nodeprep(node, strict);
 			if node == nil then return; end
