@@ -313,3 +313,36 @@ module:add_item("shell-command", {
 	end;
 });
 
+module:add_item("shell-command", {
+	section = "roster";
+	section_desc = "View and manage user rosters (contact lists)";
+	name = "clean";
+	desc = "Remove invalid JIDs from roster";
+	args = {
+		{ name = "jid", type = "string" };
+	};
+	host_selector = "jid";
+	handler = function(self, jid) -- luacheck: ignore 212/self
+		local function iter(user, host)
+			if user then return pairs({ [user] = true }); end
+			local users = require"prosody.core.usermanager".users;
+			return users(host);
+		end
+
+		local user, host = jid_split(jid);
+		local removed = 0;
+		for user_ in iter(user, host) do
+			local roster = assert(rm_load_roster(user_, host));
+			for contact in pairs(roster) do
+				if type(contact) == "string" then
+					if not jid_prep(contact) or jid_resource(contact) then
+						roster[contact] = nil;
+						removed = removed + 1;
+					end
+				end
+			end
+		end
+		return true, ("%d invalid roster entrie(s) removed"):format(removed);
+	end;
+});
+
