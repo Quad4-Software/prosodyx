@@ -995,6 +995,8 @@ function module.load()
 					engine:execute("PRAGMA fullfsync=1;")
 				end
 
+				engine:execute(("PRAGMA busy_timeout=%d;"):format(module:get_option_integer("sqlite_busy_timeout_ms", 1000, 0)));
+
 				for row in engine:select[[PRAGMA journal_mode;]] do
 					journal_mode = row[1];
 				end
