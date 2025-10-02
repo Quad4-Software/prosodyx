@@ -66,7 +66,7 @@ local upload_errors = errors.init(module.name, namespace, {
 		code = 413;
 		type = "modify";
 		condition = "not-acceptable";
-		text = "File too large";
+		text = "File too large"; -- also used if file is too small
 		extra = {
 			tag = st.stanza("file-too-large", { xmlns = namespace }):tag("max-file-size"):text(tostring(file_size_limit));
 		};
@@ -293,6 +293,7 @@ function handle_upload(event, path) -- PUT /upload/:slot
 			return upload_errors.new("unauthz", { request = request });
 		end
 		if request.headers.content_length and tonumber(request.headers.content_length) ~= authed_upload_info.filesize then
+			module:log("debug", "Unexpected Content-Length %q, expected %s", request.headers.content_length, B(authed_upload_info.filesize));
 			return upload_errors.new("filesize", { request = request });
 			-- Note: We don't know the size if the upload is streamed in chunked encoding,
 			-- so we also check the final file size on completion.
@@ -351,6 +352,7 @@ function handle_upload(event, path) -- PUT /upload/:slot
 		local uploaded, err = errors.coerce(request.body_sink:close());
 		if final_size ~= upload_info.filesize then
 			-- Could be too short as well, but we say the same thing
+			module:log("debug", "Final file size is %s but expected %s (%s difference)", B(final_size), B(upload_info.filesize), B(upload_info.filesize - final_size));
 			uploaded, err = false, upload_errors.new("filesize", { request = request });
 		end
 		if uploaded then
