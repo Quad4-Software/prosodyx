@@ -352,7 +352,8 @@ function handle_upload(event, path) -- PUT /upload/:slot
 		local uploaded, err = errors.coerce(request.body_sink:close());
 		if final_size ~= upload_info.filesize then
 			-- Could be too short as well, but we say the same thing
-			module:log("debug", "Final file size is %s but expected %s (%s difference)", B(final_size), B(upload_info.filesize), B(upload_info.filesize - final_size));
+			module:log("debug", "Final file size is %s but expected %s (%s difference)",
+				B(final_size), B(upload_info.filesize), B(upload_info.filesize - final_size));
 			uploaded, err = false, upload_errors.new("filesize", { request = request });
 		end
 		if uploaded then
