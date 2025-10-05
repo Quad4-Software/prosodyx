@@ -347,6 +347,10 @@ function startup.add_global_prosody_functions()
 			elseif level == "file" then
 				log("error", "Couldn't read the config file when trying to reload: %s", err);
 			end
+			prosody.events.fire_event("config-reload-failed", {
+				filename = prosody.config_file;
+				level = level; error = err;
+			});
 		else
 			prosody.events.fire_event("config-reloaded", {
 				filename = prosody.config_file,
@@ -858,6 +862,15 @@ function startup.notification_socket()
 	end);
 	prosody.events.add_handler("reloading-config", function()
 		notify_socket:send(string.format("RELOADING=1\nMONOTONIC_USEC=%d", math.floor(time.monotonic() * 1000000)));
+	end);
+	prosody.events.add_handler("config-reload-failed", function(event)
+		if event and event.level == "parser" then
+			notify_socket:send(string.format("READY=1\nSTATUS=Error parsing configuration file: %s", tostring(event.error)));
+		elseif event and event.level == "file" then
+			notify_socket:send(string.format("READY=1\nSTATUS=Could not read configuration file: %s", tostring(event.error)));
+		else
+			notify_socket:send("READY=1\nSTATUS=Could not read configuration file");
+		end
 	end);
 	prosody.events.add_handler("config-reloaded", function()
 		notify_socket:send("READY=1");
