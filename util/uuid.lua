@@ -28,15 +28,11 @@ end
 
 local function generate_v7()
 	-- Sortable based on time and random
-	-- https://datatracker.ietf.org/doc/html/draft-peabody-dispatch-new-uuid-format-01#section-4.4
-	local t = time.now();
-	local unixts = m_floor(t);
-	local unixts_a = m_floor(unixts / 16);
-	local unixts_b = m_floor(unixts % 16);
-	local subsec = t % 1;
-	local subsec_a = m_floor(subsec * 0x1000);
-	local subsec_b = m_floor(subsec * 0x1000000) % 0x1000;
-	return ("%08x-%x%03x-7%03x-%4s-%12s"):format(unixts_a, unixts_b, subsec_a, subsec_b, get_twobits() .. get_nibbles(3), get_nibbles(12));
+	-- https://datatracker.ietf.org/doc/html/rfc9562#name-uuid-version-7
+	local unix_ts_ms = m_floor(time.now()*1000);
+	local unix_ts_ms_a = m_floor(unix_ts_ms / 0x10000);
+	local unix_ts_ms_b = unix_ts_ms % 0x10000;
+	return ("%08x-%4x-7%3s-%1s%3s-%12s"):format(unix_ts_ms_a, unix_ts_ms_b, get_nibbles(3), get_twobits(), get_nibbles(3), get_nibbles(12));
 end
 
 return {
