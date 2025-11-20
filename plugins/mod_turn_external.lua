@@ -33,9 +33,9 @@ for _, type in ipairs({ "stun"; "turn"; "turns" }) do
 				host = host;
 				port = type == "turns" and tls_port or port;
 
-				username = type == "turn" and user or nil;
-				secret = type == "turn" and secret or nil;
-				ttl = type == "turn" and ttl or nil;
+				username = (type == "turn" or type == "turns") and user or nil;
+				secret = (type == "turn" or type == "turns") and secret or nil;
+				ttl = (type == "turn" or type == "turns") and ttl or nil;
 			})
 		end
 	end
