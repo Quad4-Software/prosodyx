@@ -2051,22 +2051,22 @@ end
 
 def_env.xmpp = new_section("Commands for sending XMPP stanzas");
 
-describe_command [[xmpp:ping(localhost, remotehost) - Sends a ping to a remote XMPP server and reports the response]]
+describe_command [[xmpp:ping(localjid, remotejid) - Sends a ping to an XMPP entity and reports the response]]
 local new_id = require "prosody.util.id".medium;
-function def_env.xmpp:ping(localhost, remotehost, timeout)
-	localhost = select(2, jid_split(localhost));
-	remotehost = select(2, jid_split(remotehost));
+function def_env.xmpp:ping(localjid, remotejid, timeout)
+	local localhost, localresource = select(2, jid_split(localjid));
+	local remotehost = select(2, jid_split(remotejid));
 	if not localhost then
-		return nil, "Invalid sender hostname";
+		return nil, "Invalid sender JID";
 	elseif not prosody.hosts[localhost] then
 		return nil, "No such local host";
+	elseif localresource then
+		return nil, "Server can't send ping from local resource"; -- Would require creating a temporary session with bound resource and everything
 	end
 	if not remotehost then
-		return nil, "Invalid destination hostname";
-	elseif prosody.hosts[remotehost] then
-		return nil, "Both hosts are local";
+		return nil, "Invalid destination JID";
 	end
-	local iq = st.iq{ from=localhost, to=remotehost, type="get", id=new_id()}
+	local iq = st.iq{ from=localjid, to=remotejid, type="get", id=new_id()}
 			:tag("ping", {xmlns="urn:xmpp:ping"});
 	local time_start = time.now();
 	local print = self.session.print;
@@ -2082,6 +2082,12 @@ function def_env.xmpp:ping(localhost, remotehost, timeout)
 				print(("Session %s %s (%gs)"):format(s2s_session.id, what, time.now() - time_start));
 			end
 		end
+	end
+	if localhost == remotehost or prosody.hosts[remotehost] then
+		-- No s2s connections will be triggered
+		return module:context(localhost):send_iq(iq, nil, timeout):next(function(pong)
+			return ("pong from %s in %gs"):format(pong.stanza.attr.from, time.now() - time_start);
+		end);
 	end
 	local onconnected = onchange("connected");
 	local onauthenticated = onchange("authenticated");
