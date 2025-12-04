@@ -39,6 +39,7 @@ local m_min = math.min;
 local timestamp, datestamp = import( "util.datetime", "datetime", "date");
 local default_max_items, max_max_items = 20, module:get_option_integer("max_archive_query_results", 50, 0);
 local strip_tags = module:get_option_set("dont_archive_namespaces", { "http://jabber.org/protocol/chatstates" });
+local send_legacy_offline_to_mam_clients = module:get_option_boolean("send_legacy_offline_messages_to_mam_clients", false);
 
 local archive_store = module:get_option_string("archive_store", "archive");
 local archive = module:open_store(archive_store, "archive");
@@ -495,12 +496,14 @@ module:hook("message/offline/handle", function(event)
 	end
 end, -2);
 
--- Don't broadcast offline messages to clients that have queried the archive.
-module:hook("message/offline/broadcast", function (event)
-	if event.origin.mam_requested then
-		return true;
-	end
-end);
+if not send_legacy_offline_to_mam_clients then
+	-- Don't broadcast offline messages to clients that have queried the archive.
+	module:hook("message/offline/broadcast", function (event)
+		if event.origin.mam_requested then
+			return true;
+		end
+	end);
+end
 
 if cleanup_after ~= math.huge then
 	local cleanup_storage = module:open_store("archive_cleanup");
