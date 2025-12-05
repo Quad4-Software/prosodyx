@@ -2054,8 +2054,8 @@ def_env.xmpp = new_section("Commands for sending XMPP stanzas");
 describe_command [[xmpp:ping(localjid, remotejid) - Sends a ping to an XMPP entity and reports the response]]
 local new_id = require "prosody.util.id".medium;
 function def_env.xmpp:ping(localjid, remotejid, timeout)
-	local localhost, localresource = select(2, jid_split(localjid));
-	local remotehost = select(2, jid_split(remotejid));
+	local localnode, localhost, localresource = jid_split(localjid);
+	local remotenode, remotehost, remoteresource = jid_split(remotejid);
 	if not localhost then
 		return nil, "Invalid sender JID";
 	elseif not prosody.hosts[localhost] then
@@ -2066,7 +2066,7 @@ function def_env.xmpp:ping(localjid, remotejid, timeout)
 	if not remotehost then
 		return nil, "Invalid destination JID";
 	end
-	local iq = st.iq{ from=localjid, to=remotejid, type="get", id=new_id()}
+	local iq = st.iq { from = jid_join(localnode, localhost); to = jid_join(remotenode, remotehost, remoteresource); type = "get"; id = new_id() }
 			:tag("ping", {xmlns="urn:xmpp:ping"});
 	local time_start = time.now();
 	local print = self.session.print;
