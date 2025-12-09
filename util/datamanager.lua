@@ -274,7 +274,7 @@ local index_fmt, index_item_size, index_magic;
 if string.packsize then
 	index_fmt = "T"; -- offset to the end of the item, length can be derived from two index items
 	index_item_size = string.packsize(index_fmt);
-	index_magic = string.pack(index_fmt, 7767639 + 1); -- Magic string: T9 for "prosody", version number
+	index_magic = string.pack(index_fmt, 7767639 + 2 + index_item_size); -- Magic string: T9 for "prosody", version number
 end
 
 local function list_append(username, host, datastore, data)
