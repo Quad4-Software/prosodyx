@@ -621,7 +621,44 @@ describe("storagemanager", function ()
 						assert.equal(2, count);
 					end);
 
+					it("for non-existent after id returning error", function ()
+						do
+							local data, err = archive:find("user", {
+								["after"] = "non-existent-id";
+							});
+							assert.is_falsy(data);
+							assert.is_equal("item-not-found", err);
+						end
 
+						do
+							local data, err = archive:find("user", {
+								["after"] = "non-existent-id";
+								["reverse"] = true;
+							});
+							assert.is_falsy(data);
+							assert.is_equal("item-not-found", err);
+						end
+					end);
+
+					it("for non-existent before id returning error", function ()
+						do
+							local data, err = archive:find("user", {
+								["before"] = "non-existent-id";
+							});
+							assert.is_falsy(data);
+							assert.is_equal("item-not-found", err);
+						end
+
+						do
+							local data, err = archive:find("user", {
+								["before"] = "non-existent-id";
+								["reverse"] = true;
+							});
+							assert.is_falsy(data);
+							assert.is_equal("item-not-found", err);
+						end
+
+					end);
 
 				end);
 
@@ -791,3 +828,4 @@ describe("storagemanager", function ()
 		end);
 	end
 end);
+

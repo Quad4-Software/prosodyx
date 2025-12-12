@@ -173,6 +173,7 @@ function archive:find(username, query)
 		return list[i]
 	end
 
+	local after_found;
 	if query then
 		if query.reverse then
 			i = #list + 1
@@ -231,12 +232,23 @@ function archive:find(username, query)
 			iter = it.filter(function(item)
 				local found_after = found;
 				if item.key == query.after then
+					after_found = true;
 					found = true
 				end
 				return found_after;
 			end, iter);
 		end
 		if query.before then
+			local before_key, before_found = query.before;
+			for idx = 1, #list do
+				if list[idx].key == before_key then
+					before_found = true;
+					break;
+				end
+			end
+			if not before_found then
+				return nil, "item-not-found";
+			end
 			local found = false;
 			iter = it.filter(function(item)
 				if item.key == query.before then
@@ -250,8 +262,18 @@ function archive:find(username, query)
 		end
 	end
 
+	local first_item = iter();
+	if first_item == nil and query and query.after and not after_found then
+		return nil, "item-not-found";
+	end
+
 	return function()
-		local item = iter();
+		local item;
+		if first_item then
+			item, first_item = first_item, nil;
+		else
+			item = iter();
+		end
 		if item == nil then
 			if list.close then
 				list:close();
