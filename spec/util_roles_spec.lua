@@ -80,8 +80,8 @@ describe("util.roles", function ()
 				assert.truthy(grandchild_role:may("inherited-permission"));
 			end);
 			describe("supports ordered inheritance from multiple roles", function ()
-				local parent_role = roles.new();
-				local final_role = roles.new({
+				local parent_role = roles and roles.new();
+				local final_role = roles and roles.new({
 					-- Yes, the names are getting confusing.
 					-- btw, test_role is inherited through child_role.
 					inherits = { parent_role, child_role };
