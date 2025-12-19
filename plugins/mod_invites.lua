@@ -1,5 +1,6 @@
 local id = require "prosody.util.id";
 local it = require "prosody.util.iterators";
+local usermanager = require "prosody.core.usermanager";
 local url = require "socket.url";
 local jid_node = require "prosody.util.jid".node;
 local jid_split = require "prosody.util.jid".split;
@@ -302,9 +303,12 @@ module:add_item("shell-command", {
 	};
 
 	handler = function (self, user_jid, opts) --luacheck: ignore 212/self
-		local username = jid_split(user_jid);
+		local username, host = jid_split(user_jid);
 		if not username then
 			return nil, "Supply the JID of the account you want to generate a password reset for";
+		end
+		if not usermanager.user_exists(username, host) then
+			return nil, "The specified user account does not exist: " .. username;
 		end
 		local duration_sec = require "prosody.util.human.io".parse_duration(opts and opts.expires_after or "1d");
 		if not duration_sec then
