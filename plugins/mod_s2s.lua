@@ -201,6 +201,7 @@ function route_to_existing_session(event)
 		end
 		if not host.sendq:push(st.clone(stanza)) then
 			host.log("warn", "stanza [%s] not queued ", stanza.name);
+			if not event.origin then return false; end
 			event.origin.send(st.error_reply(stanza, "wait", "resource-constraint", "Outgoing stanza queue full"));
 			return true;
 		end
