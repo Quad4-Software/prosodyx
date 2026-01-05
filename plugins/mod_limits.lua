@@ -44,7 +44,7 @@ local limits = {
 		bytes_per_second = 10 * 1024;
 		burst_seconds = 2;
 	};
-	s2sin = {
+	s2s = {
 		bytes_per_second = 30 * 1024;
 		burst_seconds = 2;
 	};
@@ -55,6 +55,13 @@ for sess_type, sess_limits in pairs(limits_cfg) do
 		bytes_per_second = parse_rate(sess_limits.rate, sess_type);
 		burst_seconds = parse_burst(sess_limits.burst, sess_type);
 	};
+end
+
+if not limits.s2sin and limits.s2s then
+	limits.s2sin = limits.s2s;
+end
+if not limits.s2sout then
+	limits.s2sout = limits.s2s or limits.s2sin;
 end
 
 local default_filter_set = {};
