@@ -37,7 +37,7 @@ local autoload_modules = {
 	"s2s",
 	"s2s_auth_certs",
 };
-local component_inheritable_modules = {
+local default_component_inheritable_modules = {
 	"tls",
 	"saslauth",
 	"dialback",
@@ -128,7 +128,17 @@ local function get_modules_for_host(host)
 
 	local global_modules = set.new(autoload_modules) + set.new(global_modules_enabled) - set.new(global_modules_disabled);
 	if component then
-		global_modules = set.intersection(set.new(component_inheritable_modules), global_modules);
+		local component_inheritable_modules = set.new(default_component_inheritable_modules);
+		local ok, _, metadata = loader:load_resource(component);
+		if ok then
+			local extra_inheritable_modules = metadata.inherit_modules;
+			if extra_inheritable_modules then
+				for inherit_module in extra_inheritable_modules:gmatch("[^, ]+") do
+					component_inheritable_modules:add(inherit_module);
+				end
+			end
+		end
+		global_modules = set.intersection(component_inheritable_modules, global_modules);
 	end
 	local modules = (global_modules + set.new(host_modules_enabled)) - set.new(host_modules_disabled);
 
