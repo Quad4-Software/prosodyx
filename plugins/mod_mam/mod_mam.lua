@@ -9,6 +9,11 @@
 -- XEP-0313: Message Archive Management for Prosody
 --
 
+if module:get_host_type() == "component" and module:get_option_string("component_module") == "muc" then
+	module:depends("muc_mam");
+	return;
+end
+
 local xmlns_mam     = "urn:xmpp:mam:2";
 local xmlns_mam_ext = "urn:xmpp:mam:2#extended";
 local xmlns_delay   = "urn:xmpp:delay";
