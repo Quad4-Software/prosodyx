@@ -1690,7 +1690,7 @@ local function check(arg)
 				for _, component_module in ipairs({ suggested, alternate, ... }) do
 					found = host_components[component_module][1];
 					if found then
-						local enabled_component_modules = api(found):get_option_inherited_set("modules_enabled");
+						local enabled_component_modules = modulemanager.get_modules_for_host(found);
 						local recommended_mods = recommended_component_modules[component_module];
 						if recommended_mods then
 							local missing_mods = {};
