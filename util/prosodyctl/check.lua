@@ -1555,7 +1555,7 @@ local function check(arg)
 		};
 
 		local recommended_component_modules = {
-			muc = { "muc_mam" };
+			muc = { "mam" };
 		};
 
 		local function print_feature_status(feature, host)
