@@ -5,6 +5,7 @@
 -- This project is MIT/X11 licensed. Please see the
 -- COPYING file in the source package for more information.
 --
+--% inherit_modules: mam
 
 -- Exposed functions:
 --
@@ -17,6 +18,7 @@
 -- all_rooms() -> room
 -- live_rooms() -> room
 -- shutdown_component()
+
 
 if module:get_host_type() ~= "component" then
 	error("MUC should be loaded as a component, please see https://prosody.im/doc/components", 0);
