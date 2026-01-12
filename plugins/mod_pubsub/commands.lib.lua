@@ -44,7 +44,7 @@ local function add_commands(get_service)
 			local items = select(2, assert(service:get_items(node_name, true)));
 
 			local count = 0;
-			for item_name in pairs(items) do
+			for _, item_name in ipairs(items) do
 				count = count + 1;
 				self.session.print(item_name);
 			end
