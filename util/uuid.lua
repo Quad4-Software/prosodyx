@@ -32,7 +32,7 @@ local function generate_v7()
 	local unix_ts_ms = m_floor(time.now()*1000);
 	local unix_ts_ms_a = m_floor(unix_ts_ms / 0x10000);
 	local unix_ts_ms_b = unix_ts_ms % 0x10000;
-	return ("%08x-%4x-7%3s-%1s%3s-%12s"):format(unix_ts_ms_a, unix_ts_ms_b, get_nibbles(3), get_twobits(), get_nibbles(3), get_nibbles(12));
+	return ("%08x-%04x-7%3s-%1s%3s-%12s"):format(unix_ts_ms_a, unix_ts_ms_b, get_nibbles(3), get_twobits(), get_nibbles(3), get_nibbles(12));
 end
 
 return {
