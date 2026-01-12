@@ -1,3 +1,7 @@
+if module:get_host_type() ~= "component" then
+	error("Pubsub should be loaded as a component, please see https://prosody.im/doc/modules/mod_pubsub", 0);
+end
+
 local pubsub = require "prosody.util.pubsub";
 local st = require "prosody.util.stanza";
 local jid_bare = require "prosody.util.jid".bare;
