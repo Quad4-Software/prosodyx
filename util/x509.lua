@@ -25,6 +25,7 @@ local idna_to_unicode = require "prosody.util.encodings".idna.to_unicode;
 local base64 = require "prosody.util.encodings".base64;
 local log = require "prosody.util.logger".init("x509");
 local mt = require "prosody.util.multitable";
+local ip = require "prosody.util.ip";
 local s_format = string.format;
 local ipairs = ipairs;
 
@@ -66,6 +67,20 @@ local function compare_dnsname(host, asserted_names)
 				log("debug", "Cert dNSName %s matched hostname", name);
 				return true
 			end
+		end
+	end
+
+	return false
+end
+
+local function compare_ipaddress(host, asserted_names)
+	local host_ip = ip.new_ip(host:match("^%[([%x:.]+)%]$") or host);
+	if not host_ip then return false end
+
+	for i=1,#asserted_names do
+		if ip.new_ip(asserted_names[i]) == host_ip then
+			log("debug", "Cert iPAddress %s matched IP address", host_ip);
+			return true;
 		end
 	end
 
@@ -172,6 +187,9 @@ local function verify_identity(host, service, cert)
 		if sans["dNSName"] then
 			if compare_dnsname(host, sans["dNSName"]) then return true end
 		end
+		if sans["iPAddress"] then
+			if compare_ipaddress(host, sans["iPAddress"]) then return true end
+		end
 	end
 
 	-- Per [TLS-IDENT] ignore the Common Name
@@ -221,6 +239,15 @@ local function get_identities(cert) --> map of names to sets of services
 					if name then
 						names:set(name, srv, true);
 					end
+				end
+			end
+		end
+		if sans["iPAddress"] then
+			for _, addr in ipairs(sans["iPAddress"]) do
+				if addr:find(":") then
+					names:set("[" .. addr .. "]", "*", true);
+				else
+					names:set(addr, "*", true);
 				end
 			end
 		end
