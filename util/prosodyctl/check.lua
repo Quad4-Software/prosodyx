@@ -475,7 +475,6 @@ local function check(arg)
 			"websocket_get_response_text",
 		});
 		local config = configmanager.getconfig();
-		local global = api("*");
 		-- Check that we have any global options (caused by putting a host at the top)
 		if it.count(it.filter("log", pairs(config["*"]))) == 0 then
 			ok = false;
@@ -538,9 +537,8 @@ local function check(arg)
 		end
 
 		do -- Check for modules enabled both normally and as components
-			local modules = global:get_option_set("modules_enabled");
-			for host, options in enabled_hosts() do
-				local component_module = options.component_module;
+			for host in enabled_hosts() do
+				local modules, component_module = modulemanager.get_modules_for_host(host);
 				if component_module and modules:contains(component_module) then
 					print(("    mod_%s is enabled both in modules_enabled and as Component %q %q"):format(component_module, host, component_module));
 					print("    This means the service is enabled on all VirtualHosts as well as the Component.");
