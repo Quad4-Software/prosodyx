@@ -46,6 +46,7 @@ local default_component_inheritable_modules = {
 	"s2s_bidi",
 	"smacks",
 	"server_contact_info",
+	"admin_shell",
 };
 
 -- We need this to let modules access the real global namespace
