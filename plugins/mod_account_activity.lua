@@ -69,11 +69,16 @@ module:add_item("shell-command", {
 		for username in um.users(host) do
 			local last_active = store:get_key(username, "timestamp");
 			if not last_active then
-				local created_at = um.get_account_info(username, host).created;
-				if created_at and (now - created_at) > duration_sec then
-					self.session.print(username, "");
-					n_inactive = n_inactive + 1;
-				elseif not created_at then
+				local user_info = um.get_account_info(username, host);
+				local created_at;
+				if user_info then
+					created_at  = user_info.created;
+					if created_at and (now - created_at) > duration_sec then
+						self.session.print(username, "");
+						n_inactive = n_inactive + 1;
+					end
+				end
+				if not created_at then
 					n_unknown = n_unknown + 1;
 				end
 			elseif (now - last_active) > duration_sec then
