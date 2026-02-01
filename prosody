@@ -27,6 +27,7 @@ end
 
 -- Tell Lua where to find our libraries
 if CFG_SOURCEDIR then
+	-- Installed instance
 	local function is_relative(path)
 		local path_sep = package.config:sub(1,1);
 		return ((path_sep == "/" and path:sub(1,1) ~= "/")
@@ -40,6 +41,11 @@ if CFG_SOURCEDIR then
 	end
 	package.path = sanitise_paths(CFG_SOURCEDIR.."/?.lua;"..package.path);
 	package.cpath = sanitise_paths(CFG_SOURCEDIR.."/?.so;"..package.cpath);
+
+	require "prosody.loader";
+else
+	-- Not installed, e.g. running from a source checkout
+	require "loader";
 end
 
 -- Substitute ~ with path to home directory in data path
@@ -49,10 +55,6 @@ if CFG_DATADIR then
 	end
 end
 
-
-if not pcall(require, "prosody.loader") then
-	pcall(require, "loader");
-end
 
 local startup = require "prosody.util.startup";
 local async = require "prosody.util.async";
