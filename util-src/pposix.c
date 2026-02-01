@@ -123,9 +123,17 @@ static int lc_daemonize(lua_State *L) {
 	}
 
 	/* Make sure accidental use of FDs 0, 1, 2 don't cause weirdness */
-	freopen("/dev/null", "r", stdin);
-	freopen("/dev/null", "w", stdout);
-	freopen("/dev/null", "w", stderr);
+	if(!freopen("/dev/null", "r", stdin)) {
+		fprintf(stderr, "Failed to redirect stdin to /dev/null");
+	}
+
+	if(!freopen("/dev/null", "w", stdout)) {
+		fprintf(stderr, "Failed to redirect stdout to /dev/null");
+	}
+
+	if(!freopen("/dev/null", "w", stderr)) {
+		fprintf(stderr, "Failed to redirect stderr to /dev/null");
+	}
 
 	/* Final fork, use it wisely */
 	if(fork()) {
