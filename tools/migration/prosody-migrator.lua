@@ -7,14 +7,21 @@ CFG_DATADIR=CFG_DATADIR or os.getenv("PROSODY_DATADIR");
 
 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
-local function is_relative(path)
-	local path_sep = package.config:sub(1,1);
-        return ((path_sep == "/" and path:sub(1,1) ~= "/")
-	or (path_sep == "\\" and (path:sub(1,1) ~= "/" and path:sub(2,3) ~= ":\\")))
+-- Check before first require, to preempt the probable failure
+if _VERSION < "Lua 5.2" then
+	io.stderr:write("Prosody is no longer compatible with Lua 5.1\n")
+	io.stderr:write("See https://prosody.im/doc/depends#lua for more information\n")
+	return os.exit(1);
 end
 
 -- Tell Lua where to find our libraries
 if CFG_SOURCEDIR then
+	-- Installed instance
+	local function is_relative(path)
+		local path_sep = package.config:sub(1,1);
+		return ((path_sep == "/" and path:sub(1,1) ~= "/")
+			or (path_sep == "\\" and (path:sub(1,1) ~= "/" and path:sub(2,3) ~= ":\\")))
+	end
 	local function filter_relative_paths(path)
 		if is_relative(path) then return ""; end
 	end
@@ -23,6 +30,11 @@ if CFG_SOURCEDIR then
 	end
 	package.path = sanitise_paths(CFG_SOURCEDIR.."/?.lua;"..package.path);
 	package.cpath = sanitise_paths(CFG_SOURCEDIR.."/?.so;"..package.cpath);
+
+	require "prosody.loader";
+else
+	-- Not installed, e.g. running from a source checkout
+	require "loader";
 end
 
 -- Substitute ~ with path to home directory in data path
