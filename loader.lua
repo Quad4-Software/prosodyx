@@ -2,11 +2,9 @@
 -- transition period while we update all require calls.
 
 if (...) == "prosody.loader" then
-	if not package.path:find "prosody" then
-		-- For require"util.foo" also look in paths equivalent to "prosody.util.foo"
-		package.path = package.path:gsub("([^;]*)(?[^;]*)", "%1prosody/%2;%1%2");
-		package.cpath = package.cpath:gsub("([^;]*)(?[^;]*)", "%1prosody/%2;%1%2");
-	end
+	-- For require"util.foo" also look in paths equivalent to "prosody.util.foo"
+	package.path = package.path:gsub("([^;]*)(?[^;]*)", "%1prosody/%2;%1%2");
+	package.cpath = package.cpath:gsub("([^;]*)(?[^;]*)", "%1prosody/%2;%1%2");
 else
 	-- When requiring "prosody.x", also look for "x"
 	for i = #package.searchers, 1, -1 do
