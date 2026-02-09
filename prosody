@@ -42,7 +42,11 @@ if CFG_SOURCEDIR then
 	package.path = sanitise_paths(CFG_SOURCEDIR.."/?.lua;"..package.path);
 	package.cpath = sanitise_paths(CFG_SOURCEDIR.."/?.so;"..package.cpath);
 
-	require "prosody.loader";
+	if pcall(dofile, CFG_SOURCEDIR .. "/loader.lua") then
+		package.loaded["prosody.loader"] = true;
+	else
+		require "prosody.loader";
+	end
 else
 	-- Not installed, e.g. running from a source checkout
 	require "loader";
