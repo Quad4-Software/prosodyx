@@ -24,9 +24,9 @@ if _VERSION < "Lua 5.2" then
 	return os.exit(1);
 end
 
-
 -- Tell Lua where to find our libraries
-if CFG_SOURCEDIR then
+-- and ensure that resources in the current directory are not picked up by accident
+do
 	-- Installed instance
 	local function is_relative(path)
 		local path_sep = package.config:sub(1,1);
@@ -39,17 +39,14 @@ if CFG_SOURCEDIR then
 	local function sanitise_paths(paths)
 		return (paths:gsub("[^;]+;?", filter_relative_paths):gsub(";;+", ";"));
 	end
-	package.path = sanitise_paths(CFG_SOURCEDIR.."/?.lua;"..package.path);
-	package.cpath = sanitise_paths(CFG_SOURCEDIR.."/?.so;"..package.cpath);
+	package.path = (CFG_SOURCEDIR or ".") .. "/?.lua;" .. sanitise_paths(package.path);
+	package.cpath = (CFG_SOURCEDIR or ".") .. "/?.so;" .. sanitise_paths(package.cpath);
 
-	if pcall(dofile, CFG_SOURCEDIR .. "/loader.lua") then
+	if pcall(dofile, (CFG_SOURCEDIR or ".") .. "/loader.lua") then
 		package.loaded["prosody.loader"] = true;
 	else
 		require "prosody.loader";
 	end
-else
-	-- Not installed, e.g. running from a source checkout
-	require "loader";
 end
 
 -- Substitute ~ with path to home directory in data path
