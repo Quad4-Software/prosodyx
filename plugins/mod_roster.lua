@@ -48,6 +48,7 @@ module:hook("iq/self/jabber:iq:roster:query", function(event)
 					roster:tag("item", {
 						jid = jid,
 						subscription = item.subscription,
+						approved = item.approved,
 						ask = item.ask,
 						name = item.name,
 					});

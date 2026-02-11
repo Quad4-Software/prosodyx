@@ -67,7 +67,13 @@ local function roster_push(username, host, jid)
 		local stanza = st.iq({type="set", id=new_id()});
 		stanza:tag("query", {xmlns = "jabber:iq:roster", ver = tostring(roster[false].version or "1")  });
 		if item then
-			stanza:tag("item", {jid = jid, subscription = item.subscription, name = item.name, ask = item.ask});
+			stanza:tag("item", {
+				jid = jid;
+				subscription = item.subscription;
+				name = item.name;
+				ask = item.ask;
+				approved = item.approved;
+			});
 			for group in pairs(item.groups) do
 				stanza:tag("group"):text(group):up();
 			end
