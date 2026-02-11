@@ -70,7 +70,7 @@ local function should_copy(stanza, c2s, user_bare) --> boolean, reason: string
 end
 
 module:hook("carbons-should-copy", function (event)
-	local should, why = should_copy(event.stanza);
+	local should, why = should_copy(event.stanza, event.from_c2s, event.user_bare);
 	event.reason = why;
 	return should;
 end, -1)
@@ -107,7 +107,12 @@ local function message_handler(event, c2s)
 		return -- No use in sending carbons to an offline user
 	end
 
-	local event_payload = { stanza = stanza; session = origin };
+	local event_payload = {
+		stanza = stanza;
+		session = origin;
+		from_c2s = c2s;
+		user_bare = bare_jid;
+	};
 	local should = module:fire_event("carbons-should-copy", event_payload);
 	local why = event_payload.reason;
 
