@@ -431,23 +431,22 @@ function handle_download(event, path) -- GET /uploads/:slot+filename
 
 	local request_range = request.headers.range;
 	local response_range;
-	if request_range then
-		local last_byte = string.format("%d", tonumber(filesize) - 1);
+	-- "bytes=0-" just means "the whole file", so ignore it along with non-byte-range requests
+	if request_range and request_range ~= "bytes=0-" and request_range:find("^bytes=") then
+		local size = tonumber(filesize);
+		local last_byte = string.format("%d", size - 1);
 		local range_start, range_end = request_range:match("^bytes=(%d+)%-(%d*)$")
 		-- Only support resumption, ie ranges from somewhere in the middle until the end of the file.
-		if (range_start and range_start ~= "0") and (range_end == "" or range_end == last_byte) then
-			local pos, size = tonumber(range_start), tonumber(filesize);
+		if range_end == "" or range_end == last_byte then
+			local pos = tonumber(range_start);
 			local new_pos = pos < size and handle:seek("set", pos);
 			if new_pos and new_pos < size then
-				response_range = "bytes "..range_start.."-"..last_byte.."/"..filesize;
+				response_range = string.format("bytes %d-%d/%s", range_start, last_byte, filesize);
 				filesize = string.format("%d", size-pos);
 			else
 				handle:close();
 				return 416;
 			end
-		else
-			handle:close();
-			return 416;
 		end
 	end
 
