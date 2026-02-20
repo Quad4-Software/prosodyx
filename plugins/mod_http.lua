@@ -264,6 +264,8 @@ function module.add_host(module)
 					function handler(event) -- luacheck: ignore 432/event
 						if event.request.body ~= false then
 							return _handler(event);
+						else
+							return true;
 						end
 					end
 				end
