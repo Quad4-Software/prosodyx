@@ -120,6 +120,11 @@ o
 					body = "Hello", count = 3;
 				}
 			);
+
+			test_stream(
+				"POST /debug HTTP/1.1\r\nHost: localhost:5280\r\nUser-Agent: curl/8.14.1\r\nTransfer-Encoding: chunked\r\nContent-Type: application/json\r\n"
+				.."Accept: application/json\r\n\r\nd\r\n{\"json\":true}\r\n0\r\n\r\n",
+				{ count = 2; body = "{\"json\":true}" })
 		end);
 
 		it("should handle a stream of responses", function ()

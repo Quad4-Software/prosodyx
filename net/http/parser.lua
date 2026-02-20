@@ -93,9 +93,12 @@ function httpstream.new(success_cb, error_cb, parser_type, options_cb)
 						end
 					end
 					if not first_line then error = true; return error_cb("invalid-status-line"); end
-					chunked = have_body and headers["transfer-encoding"] == "chunked";
 					len = tonumber(headers["content-length"]); -- TODO check for invalid len
 					if client then
+						-- The presence of a message body in a response, as detailed in Section 6.3, depends on both the request method to which it is responding
+						-- and the response status code.
+						-- -- RFC9112 Section 6
+						chunked = have_body and headers["transfer-encoding"] == "chunked";
 						-- FIXME handle '100 Continue' response (by skipping it)
 						if not have_body then len = 0; end
 						packet = {
@@ -111,6 +114,11 @@ function httpstream.new(success_cb, error_cb, parser_type, options_cb)
 							responseheaders = headers;
 						};
 					else
+						-- The presence of a message body in a request is signaled by a Content-Length or Transfer-Encoding header field. Request message framing
+						-- is independent of method semantics.
+						-- -- RFC9112 Section 6
+						chunked = headers["transfer-encoding"] == "chunked";
+						have_body = chunked or len;
 						local parsed_url;
 						if path:byte() == 47 then -- starts with /
 							local _path, _query = path:match("([^?]*).?(.*)");
