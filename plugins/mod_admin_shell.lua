@@ -2414,7 +2414,7 @@ function def_env.debug:cert_index(path)
 	local print = self.session.print;
 	local cm = require "core.certmanager";
 
-	path = path or module:get_option("certificates", "certs");
+	path = path or module:get_option_path("certificates", "certs", "config");
 
 	local sink = logger.add_simple_sink(function (source, level, message)
 		if source == "certmanager" then
