@@ -9,6 +9,9 @@ local xmlns_hats = "urn:xmpp:hats:0";
 -- Strip any hats claimed by the client (to prevent spoofing)
 muc_util.add_filtered_namespace(xmlns_hats);
 
+module:hook("muc-disco#info", function(event)
+	event.reply:tag("feature", { var = xmlns_hats }):up();
+end);
 
 module:hook("muc-build-occupant-presence", function (event)
 	local bare_jid = event.occupant and event.occupant.bare_jid or event.bare_jid;
