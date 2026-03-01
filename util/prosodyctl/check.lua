@@ -1564,6 +1564,14 @@ local function check(arg)
 				print("");
 			end
 			if not feature.ok then
+				if feature.problems then
+					table.sort(feature.problems);
+					print("", "", "Problems found:");
+					for _, problem in ipairs(feature.problems) do
+						print("", "", ("  - %s"):format(problem));
+					end
+					print("");
+				end
 				if feature.lacking_modules then
 					table.sort(feature.lacking_modules);
 					print("", "", "Suggested modules: ");
@@ -1676,10 +1684,23 @@ local function check(arg)
 
 			local current_feature;
 
+			local function problem(message)
+				current_feature.problems = current_feature.problems or {};
+				table.insert(current_feature.problems, message);
+			end
+
 			local function check_module(suggested, alternate, ...)
 				if set.intersection(modules_enabled, set.new({suggested, alternate, ...})):empty() then
 					current_feature.lacking_modules = current_feature.lacking_modules or {};
 					table.insert(current_feature.lacking_modules, suggested);
+				end
+			end
+
+			local function soft_check_for_modules(...)
+				for _, mod in ipairs({...}) do
+					if modules_enabled:contains(mod) then
+						return mod;
+					end
 				end
 			end
 
@@ -1792,6 +1813,8 @@ local function check(arg)
 					name = "File sharing";
 					desc = "Sharing of files to groups and offline users";
 					check = function (self)
+						local host_has_it = soft_check_for_modules("http_file_share", "http_upload", "http_upload_external");
+
 						local service = check_component("http_file_share", "http_upload", "http_upload_external");
 						if service then
 							local size_limit;
@@ -1802,6 +1825,9 @@ local function check(arg)
 								self.meta = {
 									["Size limit"] = human_units.format(size_limit, "b", "b");
 								};
+							end
+							if host_has_it then
+								problem(("%s is present in modules_enabled, but you already have a component. Remove it from modules_enabled."):format(host_has_it));
 							end
 						end
 					end;
@@ -1823,6 +1849,7 @@ local function check(arg)
 				current_feature = feature;
 				feature:check();
 				feature.ok = (
+					not feature.problems and
 					not feature.lacking_modules and
 					not feature.lacking_components and
 					not feature.lacking_component_modules
