@@ -400,6 +400,7 @@ function api:get_option_enum(name, default, ...)
 	local options = set.new{default, ...};
 	if not options:contains(value) then
 		self:log("error", "Config option '%s' not in set of allowed values (one of: %s)", name, options);
+		return default;
 	end
 	return value;
 end
