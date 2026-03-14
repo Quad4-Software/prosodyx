@@ -19,7 +19,7 @@ local add_task = require "prosody.util.timer".add_task;
 local stop_timer = require "prosody.util.timer".stop;
 local st = require "prosody.util.stanza";
 local initialize_filters = require "prosody.util.filters".initialize;
-local nameprep = require "prosody.util.encodings".stringprep.nameprep;
+local prepped_split = require "prosody.util.jid".prepped_split;
 local new_xmpp_stream = require "prosody.util.xmppstream".new;
 local s2s_new_incoming = require "prosody.core.s2smanager".new_incoming;
 local s2s_new_outgoing = require "prosody.core.s2smanager".new_outgoing;
@@ -490,8 +490,12 @@ function session_events.streamopened(session, event)
 
 		-- Validate to/from
 		local to, from = attr.to, attr.from;
-		if to then to = nameprep(attr.to); end
-		if from then from = nameprep(attr.from); end
+		local function hostprep(s)
+			local node, host, res = prepped_split(s);
+			if not (node or res) then return host; end
+		end
+		if to then to = hostprep(attr.to); end
+		if from then from = hostprep(attr.from); end
 		if not to and attr.to then -- COMPAT: Some servers do not reliably set 'to' (especially on stream restarts)
 			session:close({ condition = "improper-addressing", text = "Invalid 'to' address" });
 			return;
