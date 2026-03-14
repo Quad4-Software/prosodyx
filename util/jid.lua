@@ -52,7 +52,8 @@ end
 
 local function valid_ip(ip)
 	local v6 = match(ip, "^%[([%x:.]+)%]$");
-	return net.pton(v6 or ip);
+	local v4 = match(ip, "^%d%d?%d?%.%d%d?%d?%.%d%d?%d?%.%d%d?%d?$");
+	return (v6 or v4) and net.pton(v6 or v4);
 end
 
 local function prepped_split(jid, strict)

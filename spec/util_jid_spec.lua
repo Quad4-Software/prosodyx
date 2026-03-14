@@ -79,6 +79,7 @@ describe("util.jid", function()
 			test("xmpp:test@example.com", nil, nil, nil);
 			test("xmpp:example.com", nil, nil, nil);
 			test("+123@bridge.example.com)", nil, nil, nil);
+			test("node@2001:db8::50:726f:736f:6479/foo", nil, nil, nil);
 		end);
 		it("should reject invalid arguments", function ()
 			assert.has_error(function () jid.prepped_split(false) end)
