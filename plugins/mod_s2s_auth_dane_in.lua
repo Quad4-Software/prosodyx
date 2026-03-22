@@ -4,6 +4,7 @@ local dns = require "prosody.net.adns";
 local async = require "prosody.util.async";
 local encodings = require "prosody.util.encodings";
 local hashes = require "prosody.util.hashes";
+local inet_pton = require "prosody.util.net".pton;
 local promise = require "prosody.util.promise";
 local x509 = require "prosody.util.x509";
 
@@ -65,6 +66,11 @@ module:hook("s2s-check-certificate", function(event)
 	local log = session.log or module._log;
 
 	if not host or not cert or session.direction ~= "incoming" then
+		return
+	end
+
+	if inet_pton(host) or host:sub(1,1) == '[' then
+		-- No DANCEing with IP literals
 		return
 	end
 
