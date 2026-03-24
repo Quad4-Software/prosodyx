@@ -70,6 +70,12 @@ function methods:next(cb)
 		return;
 	end
 
+	if not self.port then
+		self.last_error = "indeterminate port";
+		cb(nil);
+		return;
+	end
+
 	if not self.hostname then
 		self.last_error = "hostname failed IDNA";
 		cb(nil);
@@ -128,7 +134,7 @@ local function new(hostname, port, conn_type, extra)
 	if not is_ip and hostname:sub(1,1) == '[' then
 		is_ip = inet_pton(hostname:sub(2,-2));
 	end
-	if is_ip then
+	if is_ip and port then
 		hostname = inet_ntop(is_ip);
 		if #is_ip == 16 then
 			targets = { { conn_type.."6", hostname, port, extra } };

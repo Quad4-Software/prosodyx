@@ -154,8 +154,8 @@ local function new(hostname, service, conn_type, extra)
 	if not is_ip and hostname:sub(1,1) == '[' then
 		is_ip = inet_pton(hostname:sub(2,-2));
 	end
-	if is_ip and extra and extra.default_port then
-		return basic.new(hostname, extra.default_port, conn_type, extra);
+	if is_ip then
+		return basic.new(hostname, extra and extra.default_port, conn_type, extra);
 	end
 
 	return setmetatable({
