@@ -2817,6 +2817,46 @@ local command_metadata_schema = {
 -- host_commands[section..":"..name][false] = metadata
 local host_commands = {};
 
+-- Remove command handlers for a host (specify name to clear just one command)
+function clear_host_commands(host, name)
+	for command_name, command_info in pairs(host_commands) do
+		if not name or name == command_name then
+			command_info[host] = nil;
+			local has_any_host_handlers_left;
+			for k in pairs(command_info) do
+				if k ~= false then
+					has_any_host_handlers_left = true;
+					break;
+				end
+			end
+			if not has_any_host_handlers_left then
+				host_commands[command_name] = nil;
+			end
+			if name then
+				break;
+			end
+		end
+	end
+end
+
+-- This returns a wrapper function which routes to the correct handler for a host
+local function new_host_command_handler(qualified_name, selector_name, selector_index)
+	return function (...)
+		local selected_host = select(2, jid_split((select(selector_index, ...))));
+		if type(selected_host) ~= "string" then
+			return nil, "Invalid or missing argument '"..selector_name.."'";
+		end
+		if not prosody.hosts[selected_host] then
+			return nil, "Unknown host: "..selected_host;
+		end
+		local host_handler = host_commands[qualified_name][selected_host];
+		if not host_handler then
+			return nil, "This command is not available on "..selected_host;
+		end
+		return host_handler(...);
+	end;
+end
+
 local function new_item_handlers(command_host)
 	local function on_command_added(event)
 		local command = event.item;
@@ -2850,26 +2890,13 @@ local function new_item_handlers(command_host)
 				host_command_info = {
 					[false] = {
 						host_selector = command.host_selector;
-						handler = function (...)
-							local selected_host = select(2, jid_split((select(selector_index, ...))));
-							if type(selected_host) ~= "string" then
-								return nil, "Invalid or missing argument '"..command.host_selector.."'";
-							end
-							if not prosody.hosts[selected_host] then
-								return nil, "Unknown host: "..selected_host;
-							end
-							local host_handler = host_commands[qualified_name][selected_host];
-							if not host_handler then
-								return nil, "This command is not available on "..selected_host;
-							end
-							return host_handler(...);
-						end;
+						handler = new_host_command_handler(qualified_name, command.host_selector, selector_index);
 					};
 				};
 				host_commands[qualified_name] = host_command_info;
 			end
 			if host_command_info[command_host] then
-				module:log("warn", "Command %s() is already registered - overwriting with %s", qualified_name, mod_name);
+				module:log("warn", "Command %s() is already registered on %s - overwriting with %s", qualified_name, command_host, mod_name);
 			end
 			host_command_info[command_host] = handler;
 		end
@@ -2930,31 +2957,23 @@ local function new_item_handlers(command_host)
 
 		local section_t = def_env[command.section];
 		if not section_t or section_t[command.name] ~= handler then
-			return;
+			-- Handler doesn't match, but it could be the host-selector wrapper
+			-- Let's try removing a per-host command
+			local qualified_name = command.section..":"..command.name;
+			local host_command_handlers = host_commands[qualified_name];
+			if host_command_handlers then
+				-- Bingo!
+				module:log("debug", "Removing command %s from %s", qualified_name, command_host);
+				clear_host_commands(command_host, qualified_name);
+			elseif section_t then
+				module:log("warn", "Not removing shell command: handler mismatch: %q ~= %q", section_t and section_t[command.name], handler);
+				return;
+			end
 		end
 
 		section_t[command.name] = nil;
 		if next(section_t) == nil then -- Delete section if empty
 			def_env[command.section] = nil;
-		end
-
-		if command_host then
-			local host_command_info = host_commands[command.section..":"..command.name];
-			if host_command_info then
-				-- Remove our host handler
-				host_command_info[command_host] = nil;
-				-- Clean up entire command entry if there are no per-host handlers left
-				local any_hosts = false;
-				for k in pairs(host_command_info) do
-					if k then -- metadata is false, ignore it
-						any_hosts = true;
-						break;
-					end
-				end
-				if not any_hosts then
-					host_commands[command.section..":"..command.name] = nil;
-				end
-			end
 		end
 	end
 	return on_command_added, on_command_removed;
@@ -2964,6 +2983,13 @@ module:handle_items("shell-command", new_item_handlers());
 
 function module.add_host(host_module)
 	host_module:handle_items("shell-command", new_item_handlers(host_module.host));
+	function host_module.unload()
+		-- Due to non-deterministic unload order, we might not see item
+		-- removal events for all commands before we get unloaded, so
+		-- we clear everything from the host explicitly when we're
+		-- unloaded (also sensible if we are unloaded manually)
+		clear_host_commands(host_module.host);
+	end
 end
 
 function module.unload()
