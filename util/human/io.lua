@@ -43,7 +43,7 @@ local function getpass()
 	end
 	io.write("\n");
 	if ok then
-		return pass;
+		return (pass:gsub("\n$", ""));
 	end
 end
 
