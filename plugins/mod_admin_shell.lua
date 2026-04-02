@@ -20,6 +20,7 @@ local server = require "prosody.net.server";
 local schema = require "prosody.util.jsonschema";
 local st = require "prosody.util.stanza";
 local parse_args = require "prosody.util.argparse".parse;
+local saslprep = require "prosody.util.encodings".stringprep.saslprep;
 
 local _G = _G;
 
@@ -1869,8 +1870,16 @@ function def_env.user:create(jid, password, role)
 		role = module:get_option_string("default_provisioned_role", "prosody:member");
 	end
 
-	return promise.resolve(password or self.session.request_input("password")):next(function (password_)
-		local ok, err = um.create_user_with_role(username, password_, host, role);
+	return promise.resolve(password or self.session.request_input("password")):next(function (raw_password)
+		local prepped_password = saslprep(raw_password);
+		if not prepped_password or prepped_password == "" then
+			return promise.reject("Unacceptable password");
+		end
+
+		self.session.print(("PW: %q"):format(raw_password));
+		self.session.print(("PW2: %q"):format(prepped_password));
+
+		local ok, err = um.create_user_with_role(username, prepped_password, host, role);
 		if not ok then
 			return promise.reject("Could not create user: "..err);
 		end
@@ -1935,8 +1944,16 @@ function def_env.user:password(jid, password)
 		return nil, "No such user";
 	end
 
-	return promise.resolve(password or self.session.request_input("password")):next(function (password_)
-		local ok, err = um.set_password(username, password_, host, nil);
+	return promise.resolve(password or self.session.request_input("password")):next(function (raw_password)
+		local prepped_password = saslprep(raw_password);
+		if not prepped_password or prepped_password == "" then
+			return promise.reject("Unacceptable password");
+		end
+
+		self.session.print(("PW: %q"):format(raw_password));
+		self.session.print(("PW2: %q"):format(prepped_password));
+
+		local ok, err = um.set_password(username, prepped_password, host, nil);
 		if ok then
 			return "User password changed";
 		else
