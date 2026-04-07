@@ -41,7 +41,8 @@ local secure_auth = module:get_option_boolean("s2s_secure_auth", false); -- One 
 local secure_domains, insecure_domains =
 	module:get_option_set("s2s_secure_domains", {})._items, module:get_option_set("s2s_insecure_domains", {})._items;
 local require_encryption = module:get_option_boolean("s2s_require_encryption", true);
-local stanza_size_limit = module:get_option_number("s2s_stanza_size_limit", 1024*512);
+local unauthed_stanza_size_limit = module:get_option_number("s2s_unauthed_stanza_size_limit", 10000, 1000);
+local authed_stanza_size_limit = module:get_option_number("s2s_stanza_size_limit", 1024*512, 10000);
 
 local measure_connections_inbound = module:metric(
 	"gauge", "connections_inbound", "",
@@ -213,6 +214,8 @@ function route_to_new_session(event)
 	local host_session = s2s_new_outgoing(from_host, to_host);
 	host_session.version = 1;
 
+	host_session.stanza_size_limit = unauthed_stanza_size_limit;
+
 	-- Store in buffer
 	host_session.bounce_sendq = bounce_sendq;
 	host_session.sendq = { {tostring(stanza), stanza.attr.type ~= "error" and stanza.attr.type ~= "result" and st.reply(stanza)} };
@@ -372,6 +375,9 @@ function make_authenticated(event)
 	elseif session.type ~= "s2sin" and session.type ~= "s2sout" then
 		return false;
 	end
+
+	session.stanza_size_limit = authed_stanza_size_limit;
+	session.stream:set_stanza_size_limit(session.stanza_size_limit);
 
 	if session.incoming and host then
 		if not session.hosts[host] then session.hosts[host] = {}; end
@@ -730,7 +736,7 @@ end
 
 -- Session initialization logic shared by incoming and outgoing
 local function initialize_session(session)
-	local stream = new_xmpp_stream(session, stream_callbacks, stanza_size_limit);
+	local stream = new_xmpp_stream(session, stream_callbacks, session.stanza_size_limit or unauthed_stanza_size_limit);
 
 	session.thread = runner(function (stanza)
 		if st.is_stanza(stanza) then

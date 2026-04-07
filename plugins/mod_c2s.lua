@@ -28,7 +28,8 @@ local log = module._log;
 local c2s_timeout = module:get_option_number("c2s_timeout", 300);
 local stream_close_timeout = module:get_option_number("c2s_close_timeout", 5);
 local opt_keepalives = module:get_option_boolean("c2s_tcp_keepalives", module:get_option_boolean("tcp_keepalives", true));
-local stanza_size_limit = module:get_option_number("c2s_stanza_size_limit", 1024*256);
+local unauthed_stanza_size_limit = module:get_option_number("c2s_unauthed_stanza_size_limit", 10000,1000);
+local authed_stanza_size_limit = module:get_option_number("c2s_stanza_size_limit", 1024*256,10000);
 
 local measure_connections = module:metric("gauge", "connections", "", "Established c2s connections", {"host", "type", "ip_family"});
 
@@ -312,7 +313,9 @@ function listener.onconnect(conn)
 
 	session.close = session_close;
 
-	local stream = new_xmpp_stream(session, stream_callbacks, stanza_size_limit);
+	session.stanza_size_limit = unauthed_stanza_size_limit;
+
+	local stream = new_xmpp_stream(session, stream_callbacks, session.stanza_size_limit);
 	session.stream = stream;
 	session.notopen = true;
 
@@ -420,6 +423,13 @@ end
 
 function module.add_host(module)
 	module:hook("c2s-read-timeout", keepalive, -1);
+	module:hook("authentication-success", function(event)
+		local session = event.session;
+		if session.stream then
+			session.stanza_size_limit = authed_stanza_size_limit;
+			session.stream:set_stanza_size_limit(session.stanza_size_limit);
+		end
+	end);
 end
 
 module:hook("c2s-read-timeout", keepalive, -1);
