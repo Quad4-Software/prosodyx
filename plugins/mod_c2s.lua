@@ -28,7 +28,8 @@ local log = module._log;
 local c2s_timeout = module:get_option_period("c2s_timeout", "5 minutes");
 local stream_close_timeout = module:get_option_period("c2s_close_timeout", 5);
 local opt_keepalives = module:get_option_boolean("c2s_tcp_keepalives", module:get_option_boolean("tcp_keepalives", true));
-local stanza_size_limit = module:get_option_integer("c2s_stanza_size_limit", 1024*256,10000);
+local unauthed_stanza_size_limit = module:get_option_integer("c2s_unauthed_stanza_size_limit", 10000,1000);
+local authed_stanza_size_limit = module:get_option_integer("c2s_stanza_size_limit", 1024*256,10000);
 
 local advertised_idle_timeout = 14*60; -- default in all net.server implementations
 local network_settings = module:get_option("network_settings");
@@ -137,11 +138,11 @@ function session_events.streamopened(session, event)
 	local features = st.stanza("stream:features");
 	hosts[session.host].events.fire_event("stream-features", { origin = session, features = features, stream = attr });
 	if features.tags[1] or session.full_jid then
-		if stanza_size_limit or advertised_idle_timeout then
+		if session.stanza_size_limit or advertised_idle_timeout then
 			features:reset();
 			local limits = features:tag("limits", { xmlns = "urn:xmpp:stream-limits:0" });
-			if stanza_size_limit then
-				limits:text_tag("max-bytes", string.format("%d", stanza_size_limit));
+			if session.stanza_size_limit then
+				limits:text_tag("max-bytes", string.format("%d", session.stanza_size_limit));
 			end
 			if advertised_idle_timeout then
 				limits:text_tag("idle-seconds", string.format("%d", advertised_idle_timeout));
@@ -352,7 +353,9 @@ function listener.onconnect(conn)
 
 	session.close = session_close;
 
-	local stream = new_xmpp_stream(session, stream_callbacks, stanza_size_limit);
+	session.stanza_size_limit = unauthed_stanza_size_limit;
+
+	local stream = new_xmpp_stream(session, stream_callbacks, session.stanza_size_limit);
 	session.stream = stream;
 	session.notopen = true;
 
@@ -460,6 +463,13 @@ end
 
 function module.add_host(module)
 	module:hook("c2s-read-timeout", keepalive, -1);
+	module:hook("authentication-success", function(event)
+		local session = event.session;
+		if session.stream then
+			session.stanza_size_limit = authed_stanza_size_limit;
+			session.stream:set_stanza_size_limit(session.stanza_size_limit);
+		end
+	end);
 end
 
 module:hook("c2s-read-timeout", keepalive, -1);

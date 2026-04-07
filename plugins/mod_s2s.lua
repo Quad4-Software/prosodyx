@@ -41,7 +41,8 @@ local secure_auth = module:get_option_boolean("s2s_secure_auth", false); -- One 
 local secure_domains, insecure_domains =
 	module:get_option_set("s2s_secure_domains", {})._items, module:get_option_set("s2s_insecure_domains", {})._items;
 local require_encryption = module:get_option_boolean("s2s_require_encryption", true);
-local stanza_size_limit = module:get_option_integer("s2s_stanza_size_limit", 1024*512, 10000);
+local unauthed_stanza_size_limit = module:get_option_integer("s2s_unauthed_stanza_size_limit", 10000, 1000);
+local authed_stanza_size_limit = module:get_option_integer("s2s_stanza_size_limit", 1024*512, 10000);
 local sendq_size = module:get_option_integer("s2s_send_queue_size", 1024*32, 1);
 
 local advertised_idle_timeout = 14*60; -- default in all net.server implementations
@@ -226,6 +227,8 @@ function route_to_new_session(event)
 	local host_session = s2s_new_outgoing(from_host, to_host);
 	host_session.version = 1;
 
+	host_session.stanza_size_limit = unauthed_stanza_size_limit;
+
 	-- Store in buffer
 	host_session.bounce_sendq = bounce_sendq;
 	host_session.sendq = queue.new(sendq_size);
@@ -270,10 +273,11 @@ function module.add_host(module)
 	module:hook("route/remote", route_to_existing_session, -1);
 	module:hook("route/remote", route_to_new_session, -10);
 	module:hook("s2sout-stream-features", function (event)
-		if not (stanza_size_limit or advertised_idle_timeout) then return end
+		local session = event.origin;
+		if not (session.stanza_size_limit or advertised_idle_timeout) then return end
 		local limits = event.features:tag("limits", { xmlns = "urn:xmpp:stream-limits:0" })
-		if stanza_size_limit then
-			limits:text_tag("max-bytes", string.format("%d", stanza_size_limit));
+		if session.stanza_size_limit then
+			limits:text_tag("max-bytes", string.format("%d", session.stanza_size_limit));
 		end
 		if advertised_idle_timeout then
 			limits:text_tag("idle-seconds", string.format("%d", advertised_idle_timeout));
@@ -414,6 +418,9 @@ function make_authenticated(event)
 	elseif session.type ~= "s2sin" and session.type ~= "s2sout" then
 		return false;
 	end
+
+	session.stanza_size_limit = authed_stanza_size_limit;
+	session.stream:set_stanza_size_limit(session.stanza_size_limit);
 
 	if session.incoming and host then
 		if not session.hosts[host] then session.hosts[host] = {}; end
@@ -573,11 +580,11 @@ function session_events.streamopened(session, event)
 			end
 
 			if ( session.type == "s2sin" or session.type == "s2sout" ) or features.tags[1] then
-				if stanza_size_limit or advertised_idle_timeout then
+				if session.stanza_size_limit or advertised_idle_timeout then
 					features:reset();
 					local limits = features:tag("limits", { xmlns = "urn:xmpp:stream-limits:0" });
-					if stanza_size_limit then
-						limits:text_tag("max-bytes", string.format("%d", stanza_size_limit));
+					if session.stanza_size_limit then
+						limits:text_tag("max-bytes", string.format("%d", session.stanza_size_limit));
 					end
 					if advertised_idle_timeout then
 						limits:text_tag("idle-seconds", string.format("%d", advertised_idle_timeout));
@@ -794,7 +801,7 @@ end
 
 -- Session initialization logic shared by incoming and outgoing
 local function initialize_session(session)
-	local stream = new_xmpp_stream(session, stream_callbacks, stanza_size_limit);
+	local stream = new_xmpp_stream(session, stream_callbacks, session.stanza_size_limit or unauthed_stanza_size_limit);
 
 	session.thread = runner(function (item)
 		if st.is_stanza(item) then
