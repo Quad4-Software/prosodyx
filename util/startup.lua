@@ -97,7 +97,7 @@ function startup.read_config()
 	else
 		config.set_credential_fallback_mode("warn");
 	end
-	local ok, level, err = config.load(filename);
+	local ok, level, err, errno = config.load(filename);
 	if not ok then
 		print("\n");
 		print("**************************");
@@ -113,10 +113,26 @@ function startup.read_config()
 			end
 			print("");
 		elseif level == "file" then
-			print("Prosody was unable to find the configuration file.");
-			print("We looked for: "..filename);
-			print("A sample config file is included in the Prosody download called prosody.cfg.lua.dist");
-			print("Copy or rename it to prosody.cfg.lua and edit as necessary.");
+			local err_kind;
+			if errno == 2 then
+				err_kind = "find";
+			elseif errno == 13 then
+				err_kind = "access";
+			else err_kind = "open";
+			end
+			print(("Prosody was unable to %s the configuration file:"):format(err_kind));
+			print(filename);
+			print("");
+			if err_kind == "access" then
+				print(prosody.process_type.." does not have permission to open the file.");
+				print("Try running the command again as a user with permission to read the config file.");
+			elseif err_kind == "find" then
+				print("A sample config file is included in the Prosody download called prosody.cfg.lua.dist");
+				print("Copy or rename it to "..filename.." and edit as necessary.");
+			else
+				print(err);
+			end
+			print("");
 		end
 		print("More help on configuring Prosody can be found at https://prosody.im/doc/configure");
 		print("Good luck!");
