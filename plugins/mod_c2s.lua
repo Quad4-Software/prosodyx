@@ -409,6 +409,8 @@ function listener.onconnect(conn)
 	session.dispatch_stanza = stream_callbacks.handlestanza;
 
 	sessions[conn] = session;
+
+	module:fire_event("c2s-connected", { conn = conn, session = session });
 end
 
 function listener.onincoming(conn, data)
