@@ -43,6 +43,7 @@ local secure_domains, insecure_domains =
 local require_encryption = module:get_option_boolean("s2s_require_encryption", true);
 local unauthed_stanza_size_limit = module:get_option_integer("s2s_unauthed_stanza_size_limit", 10000, 1000);
 local authed_stanza_size_limit = module:get_option_integer("s2s_stanza_size_limit", 1024*512, 10000);
+local max_child_elements = module:get_option_integer("s2s_max_child_elements", 25000, 0);
 local sendq_size = module:get_option_integer("s2s_send_queue_size", 1024*32, 1);
 
 local advertised_idle_timeout = 14*60; -- default in all net.server implementations
@@ -801,7 +802,9 @@ end
 
 -- Session initialization logic shared by incoming and outgoing
 local function initialize_session(session)
-	local stream = new_xmpp_stream(session, stream_callbacks, session.stanza_size_limit or unauthed_stanza_size_limit);
+	local stream = new_xmpp_stream(session, stream_callbacks, session.stanza_size_limit, {
+		max_elements = max_child_elements;
+	});
 
 	session.thread = runner(function (item)
 		if st.is_stanza(item) then
