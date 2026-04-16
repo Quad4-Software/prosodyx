@@ -1,9 +1,13 @@
 -- Because we deal with pre-authed sessions and streams we can't be host-specific
 module:set_global();
 
+local it = require "prosody.util.iterators";
 local filters = require "prosody.util.filters";
 local throttle = require "prosody.util.throttle";
 local timer = require "prosody.util.timer";
+
+local pton = require "prosody.util.net".pton;
+
 local ceil = math.ceil;
 
 local limits_cfg = module:get_option("limits", {});
@@ -50,11 +54,51 @@ local limits = {
 	};
 };
 
+local function get_truncated_ip(conn)
+	local session_ip = pton(conn:ip());
+	if #session_ip == 128 then
+		-- Use /64 for IPv6
+		session_ip = session_ip:sub(1, 8);
+	end
+	return session_ip;
+end
+
+local function limit_ip_sessions(session_type, max_sessions)
+	-- [packed_truncated_ip] = count
+	local current_ips = module:shared("ips."..session_type);
+	module:hook(session_type.."-connected", function (event)
+		local session_ip = get_truncated_ip(event.conn);
+		local new_count = (current_ips[session_ip] or 0) + 1;
+		current_ips[session_ip] = new_count;
+		if new_count > max_sessions then
+			module:log("warn", "Rejecting stream from %s (%d of %d current connections)", event.conn:ip(), new_count, max_sessions);
+			event.session:close({ condition = "policy-violation", text = "too many connections" });
+		end
+	end);
+
+	module:hook(session_type.."-closed", function (event)
+		local session_ip = get_truncated_ip(event.conn);
+		local new_count = (current_ips[session_ip] or 0) - 1;
+		if new_count < 0 then
+			module:log("warn", "IP counting failure");
+			new_count = 0;
+		end
+		if new_count == 0 then
+			current_ips[session_ip] = nil;
+		else
+			current_ips[session_ip] = new_count;
+		end
+	end);
+end
+
 for sess_type, sess_limits in pairs(limits_cfg) do
 	limits[sess_type] = {
 		bytes_per_second = parse_rate(sess_limits.rate, sess_type);
 		burst_seconds = parse_burst(sess_limits.burst, sess_type);
 	};
+	if sess_limits.max_connections_per_ip then
+		limit_ip_sessions(sess_type, sess_limits.max_connections_per_ip);
+	end
 end
 
 if not limits.s2sin and limits.s2s then
@@ -158,3 +202,42 @@ function module.add_host(module)
 
 	end
 end
+
+module:add_item("shell-command", {
+	section = "limits";
+	section_desc = "Commands to inspect rate-limiting state";
+	name = "connections";
+	desc = "View per-IP connection limit status";
+	args = {
+		{ name = "ip", type = "string" };
+	};
+	handler = function(self, ip_str) -- luacheck: ignore 212/self
+		local check_ip = pton(ip_str);
+		if not check_ip then
+			return false, "Unable to parse IP address: "..ip_str;
+		end
+		if #check_ip == 128 then
+			check_ip = check_ip:sub(1, 8);
+		end
+
+		local found, any_limits = 0;
+
+		for sess_type, sess_limits in it.sorted_pairs(limits_cfg) do
+			if sess_limits.max_connections_per_ip then
+				any_limits = true;
+				local current_ips = module:shared("ips."..sess_type);
+				local count = current_ips[check_ip] or 0;
+				self.session.print(("%s: %d (limit %d)"):format(sess_type, count or 0, sess_limits.max_connections_per_ip));
+				found = found + count;
+			end
+		end
+
+		if not any_limits then
+			return false, "No per-IP limits are configured";
+		end
+
+		return true, ("Total of %d tracked connections with this IP"):format(found);
+	end;
+});
+
+
