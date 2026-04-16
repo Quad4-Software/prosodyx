@@ -415,6 +415,10 @@ local function handle_line(event)
 		end
 	end
 
+	if (source or line):match("^%w+$") and def_env[source or line] then
+		source, line = nil, "help:"..(source or line).."();";
+	end
+
 	local chunkname = "=console";
 	-- luacheck: ignore 311/err
 	local chunk, err = envload(source or ("return "..line), chunkname, env);
