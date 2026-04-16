@@ -43,7 +43,7 @@ local ns_pattern = "^([^"..ns_separator.."]*)"..ns_separator.."?(.*)$";
 
 local function dummy_cb() end
 
-local function new_sax_handlers(session, stream_callbacks, cb_handleprogress)
+local function new_sax_handlers(session, stream_callbacks, cb_handleprogress, max_elements)
 	local xml_handlers = {};
 
 	local cb_streamopened = stream_callbacks.streamopened;
@@ -69,6 +69,7 @@ local function new_sax_handlers(session, stream_callbacks, cb_handleprogress)
 	local stack = {};
 	local chardata, stanza = {};
 	local stanza_size = 0;
+	local child_quota = 0;
 	local non_streamns_depth = 0;
 	function xml_handlers:StartElement(tagname, attr)
 		if stanza and #chardata > 0 then
@@ -84,6 +85,18 @@ local function new_sax_handlers(session, stream_callbacks, cb_handleprogress)
 		if curr_ns ~= stream_default_ns or non_streamns_depth > 0 then
 			attr.xmlns = curr_ns;
 			non_streamns_depth = non_streamns_depth + 1;
+		end
+
+		if stanza and child_quota then
+			-- Check stanza complexity limits
+			child_quota = child_quota - 1;
+			if child_quota <= 0 then
+				cb_error(session, "parse-error", "resource-constraint", "Stanza exceeds permitted children");
+				if not self.stop or not self:stop() then
+					error("Failed to abort parsing");
+				end
+				return;
+			end
 		end
 
 		for i=1,#attr do
@@ -122,6 +135,7 @@ local function new_sax_handlers(session, stream_callbacks, cb_handleprogress)
 			end
 
 			stanza = setmetatable({ name = name, attr = attr, tags = {} }, stanza_mt);
+			child_quota = max_elements;
 		else -- we are inside a stanza, so add a tag
 			if lxp_supports_bytecount then
 				stanza_size = stanza_size + self:getcurrentbytecount();
@@ -237,10 +251,18 @@ local function new_sax_handlers(session, stream_callbacks, cb_handleprogress)
 		session = new_session;
 	end
 
-	return xml_handlers, { reset = reset, set_session = set_session };
+	local function set_max_elements(new_max_elements)
+		max_elements = new_max_elements;
+	end
+
+	return xml_handlers, {
+		reset = reset;
+		set_session = set_session;
+		set_max_elements = set_max_elements;
+	};
 end
 
-local function new(session, stream_callbacks, stanza_size_limit)
+local function new(session, stream_callbacks, stanza_size_limit, ex)
 	-- Used to track parser progress (e.g. to enforce size limits)
 	local n_outstanding_bytes = 0;
 	local handle_progress;
@@ -253,8 +275,10 @@ local function new(session, stream_callbacks, stanza_size_limit)
 		error("Stanza size limits are not supported on this version of LuaExpat")
 	end
 
+	local max_elements = ex and ex.max_elements;
+
 	local handlers, meta = new_sax_handlers(session, stream_callbacks, handle_progress);
-	local parser = new_parser(handlers, ns_separator, false);
+	local parser = new_parser(handlers, ns_separator, false, max_elements);
 	local parse = parser.parse;
 
 	function session.open_stream(session, from, to) -- luacheck: ignore 432/session
@@ -298,8 +322,9 @@ local function new(session, stream_callbacks, stanza_size_limit)
 			return ok, err;
 		end,
 		set_session = meta.set_session;
-		set_stanza_size_limit = function (_, new_stanza_size_limit)
+		set_stanza_size_limit = function (_, new_stanza_size_limit, new_max_elements)
 			stanza_size_limit = new_stanza_size_limit;
+			meta.set_max_elements(new_max_elements);
 		end;
 	};
 end
