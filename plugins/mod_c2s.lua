@@ -8,7 +8,9 @@
 
 module:set_global();
 
-local add_task = require "prosody.util.timer".add_task;
+local timer = require "prosody.util.timer";
+local add_task = timer.add_task;
+local stop_task = timer.stop;
 local new_xmpp_stream = require "prosody.util.xmppstream".new;
 local nameprep = require "prosody.util.encodings".stringprep.nameprep;
 local sessionmanager = require "prosody.core.sessionmanager";
@@ -24,6 +26,13 @@ local tostring, type = tostring, type;
 local xmlns_xmpp_streams = "urn:ietf:params:xml:ns:xmpp-streams";
 
 local log = module._log;
+
+local function stop_session_timers(session)
+	if session.c2s_timeout then
+		stop_task(session.c2s_timeout);
+		session.c2s_timeout = nil;
+	end
+end
 
 local c2s_timeout = module:get_option_period("c2s_timeout", "5 minutes");
 local stream_close_timeout = module:get_option_period("c2s_close_timeout", 5);
@@ -214,6 +223,7 @@ local function session_close(session, reason)
 	local close_event_payload = { session = session, reason = reason };
 	module:context(session.host):fire_event("pre-session-close", close_event_payload);
 	reason = close_event_payload.reason;
+	stop_session_timers(session);
 	if session.conn then
 		if session.notopen then
 			session:open_stream();
@@ -427,6 +437,7 @@ function listener.ondisconnect(conn, err)
 	local session = sessions[conn];
 	if session then
 		(session.log or log)("info", "Client disconnected: %s", err or "connection closed");
+		stop_session_timers(session);
 		sm_destroy_session(session, err);
 		session.conn = nil;
 		sessions[conn]  = nil;
