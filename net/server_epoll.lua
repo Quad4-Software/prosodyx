@@ -106,9 +106,8 @@ local function noop() end
 local closedtimers = {};
 
 local function closetimer(id)
-	if timers:remove(id) then
-		closedtimers[id] = true;
-	end
+	closedtimers[id] = true;
+	timers:remove(id);
 end
 
 local function reschedule(id, time)
@@ -595,6 +594,10 @@ end
 
 function interface:destroy()
 	self:del();
+	if self._pausefor then
+		closetimer(self._pausefor);
+		self._pausefor = nil;
+	end
 	self:setwritetimeout(false);
 	self:setreadtimeout(false);
 	self.onreadable = noop;
@@ -822,6 +825,9 @@ function interface:pausefor(t)
 	self:set(false);
 	self._pausefor = addtimer(t, function ()
 		self._pausefor = nil;
+		if not self.conn then
+			return;
+		end
 		self:set(true);
 		self:noise("Resuming after pause");
 		if self.conn and self.conn:dirty() then
