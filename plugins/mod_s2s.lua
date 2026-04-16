@@ -919,7 +919,7 @@ function listener.onconnect(conn)
 		module:fire_event("s2sout-connected", { session = session })
 		session:open_stream(session.from_host, session.to_host);
 	end
-	module:fire_event("s2s-connected", { session = session })
+	module:fire_event("s2s-connected", { session = session, conn = conn })
 	session.ip = conn:ip();
 end
 
