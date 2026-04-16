@@ -8,7 +8,9 @@
 
 module:set_global();
 
-local add_task = require "util.timer".add_task;
+local timer = require "util.timer";
+local add_task = timer.add_task;
+local stop_task = timer.stop;
 local new_xmpp_stream = require "util.xmppstream".new;
 local nameprep = require "util.encodings".stringprep.nameprep;
 local sessionmanager = require "core.sessionmanager";
@@ -27,6 +29,14 @@ local log = module._log;
 
 local c2s_timeout = module:get_option_number("c2s_timeout", 300);
 local stream_close_timeout = module:get_option_number("c2s_close_timeout", 5);
+
+local function stop_session_timers(session)
+	if session.c2s_timeout then
+		stop_task(session.c2s_timeout);
+		session.c2s_timeout = nil;
+	end
+end
+
 local opt_keepalives = module:get_option_boolean("c2s_tcp_keepalives", module:get_option_boolean("tcp_keepalives", true));
 local unauthed_stanza_size_limit = module:get_option_number("c2s_unauthed_stanza_size_limit", 10000,1000);
 local authed_stanza_size_limit = module:get_option_number("c2s_stanza_size_limit", 1024*256,10000);
@@ -192,6 +202,7 @@ local function session_close(session, reason)
 	local close_event_payload = { session = session, reason = reason };
 	module:context(session.host):fire_event("pre-session-close", close_event_payload);
 	reason = close_event_payload.reason;
+	stop_session_timers(session);
 	if session.conn then
 		if session.notopen then
 			session:open_stream();
@@ -385,6 +396,7 @@ function listener.ondisconnect(conn, err)
 	local session = sessions[conn];
 	if session then
 		(session.log or log)("info", "Client disconnected: %s", err or "connection closed");
+		stop_session_timers(session);
 		sm_destroy_session(session, err);
 		session.conn = nil;
 		sessions[conn]  = nil;
