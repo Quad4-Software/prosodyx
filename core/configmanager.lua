@@ -90,7 +90,7 @@ function _M.load(filename, config_format)
 	config_format = config_format or filename:match("%w+$");
 
 	if config_format == "lua" then
-		local f, err = io.open(filename);
+		local f, err, errno = io.open(filename);
 		if f then
 			local new_config = setmetatable({ ["*"] = { } }, config_mt);
 			local ok, err = parser.load(f:read("*a"), filename, new_config);
@@ -100,7 +100,7 @@ function _M.load(filename, config_format)
 			end
 			return ok, "parser", err;
 		end
-		return f, "file", err;
+		return f, "file", err, errno;
 	end
 
 	if not config_format then
