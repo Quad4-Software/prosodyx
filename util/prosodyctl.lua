@@ -14,7 +14,6 @@ local storagemanager = require "prosody.core.storagemanager";
 local usermanager = require "prosody.core.usermanager";
 local interpolation = require "prosody.util.interpolation";
 local signal = require "prosody.util.signal";
-local set = require "prosody.util.set";
 local path = require"prosody.util.paths";
 local lfs = require "lfs";
 local type = type;
@@ -134,8 +133,7 @@ local function getpid()
 
 	pidfile = config.resolve_relative_path(prosody.paths.data, pidfile);
 
-	local modules_disabled = set.new(config.get("*", "modules_disabled"));
-	if prosody.platform ~= "posix" or modules_disabled:contains("posix") then
+	if prosody.platform ~= "posix" then
 		return false, "no-posix";
 	end
 
