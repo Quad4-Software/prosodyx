@@ -74,8 +74,7 @@ end)();
 -- Forward declarations, as both functions need to reference each other
 local handle_push_success, handle_push_error;
 
-function handle_push_error(event)
-	local stanza = event.stanza;
+function handle_push_error(stanza)
 	local error_type, condition, error_text = stanza:get_error();
 	local node = id2node[stanza.attr.id];
 	local identifier = id2identifier[stanza.attr.id];
@@ -117,11 +116,6 @@ function handle_push_error(event)
 					changed = true;
 					user_push_services[push_identifier] = nil
 					push_errors[push_identifier] = nil;
-					-- unhook iq handlers for this identifier (if possible)
-					module:unhook("iq-error/host/"..stanza.attr.id, handle_push_error);
-					module:unhook("iq-result/host/"..stanza.attr.id, handle_push_success);
-					id2node[stanza.attr.id] = nil;
-					id2identifier[stanza.attr.id] = nil;
 				end
 			elseif user_push_services[push_identifier] and user_push_services[push_identifier].jid == from and error_type == "wait" then
 				module:log("debug", "Got error <%s:%s:%s> for identifier '%s': "
@@ -141,8 +135,7 @@ function handle_push_error(event)
 	return true;
 end
 
-function handle_push_success(event)
-	local stanza = event.stanza;
+function handle_push_success(stanza)
 	local node = id2node[stanza.attr.id];
 	local identifier = id2identifier[stanza.attr.id];
 	if node == nil then return false; end		-- unknown stanza? Ignore for now!
@@ -153,11 +146,6 @@ function handle_push_success(event)
 		if push_identifier == identifier then
 			if user_push_services[push_identifier] and user_push_services[push_identifier].jid == from and push_errors[push_identifier] > 0 then
 				push_errors[push_identifier] = 0;
-				-- unhook iq handlers for this identifier (if possible)
-				module:unhook("iq-error/host/"..stanza.attr.id, handle_push_error);
-				module:unhook("iq-result/host/"..stanza.attr.id, handle_push_success);
-				id2node[stanza.attr.id] = nil;
-				id2identifier[stanza.attr.id] = nil;
 				module:log("debug", "Push succeeded, error count for identifier '%s' is now at %s again",
 					push_identifier, tostring(push_errors[push_identifier])
 				);
@@ -257,14 +245,6 @@ local function push_disable(event)
 			end
 			user_push_services[key] = nil;
 			push_errors[key] = nil;
-			for stanza_id, identifier in pairs(id2identifier) do
-				if identifier == key then
-					module:unhook("iq-error/host/"..stanza_id, handle_push_error);
-					module:unhook("iq-result/host/"..stanza_id, handle_push_success);
-					id2node[stanza_id] = nil;
-					id2identifier[stanza_id] = nil;
-				end
-			end
 		end
 	end
 	local ok = push_store:flush_to_disk(origin.username);
@@ -413,11 +393,13 @@ local function handle_notify_request(stanza, node, user_push_services, log_push_
 				if push_errors[push_identifier] == nil then
 					push_errors[push_identifier] = 0;
 				end
-				module:hook("iq-error/host/"..stanza_id, handle_push_error);
-				module:hook("iq-result/host/"..stanza_id, handle_push_success);
 				id2node[stanza_id] = node;
 				id2identifier[stanza_id] = push_identifier;
-				module:send(push_publish);
+				module:send_iq(push_publish):next(handle_push_success, handle_push_error):finally(function ()
+					-- unhook iq handlers for this identifier (if possible)
+					id2node[stanza.attr.id] = nil;
+					id2identifier[stanza.attr.id] = nil;
+				end);
 				pushes = pushes + 1;
 			end
 		end
