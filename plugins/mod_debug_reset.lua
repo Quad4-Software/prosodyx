@@ -16,7 +16,7 @@ local function do_reset()
 	module:fire_event("server-resetting");
 	for _, host in ipairs(hosts) do
 		hostmanager.deactivate(host);
-		for i = 1, 4 do
+		for _ = 1, 4 do
 			-- Run a few cycles to ensure full cleanup, including
 			-- weak tables and finalizers
 			collectgarbage("collect");
