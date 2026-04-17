@@ -58,14 +58,14 @@ local function r(t, n, _end, ...)
 		local v = t[k];
 		if v then
 			r(v, n+1, _end, ...);
-			if not next(v) then
+			if next(v) == nil then
 				t[k] = nil;
 			end
 		end
 	else
 		for _,b in pairs(t) do
 			r(b, n+1, _end, ...);
-			if not next(b) then
+			if next(b) == nil then
 				t[_] = nil;
 			end
 		end
