@@ -81,12 +81,12 @@ function api:fire_event(...)
 end
 
 function api:hook_object_event(object, event, handler, priority)
-	self.event_handlers:set(object, event, handler, true);
+	self.event_handlers:add(object, event, handler, true);
 	return object.add_handler(event, handler, priority);
 end
 
 function api:unhook_object_event(object, event, handler)
-	self.event_handlers:set(object, event, handler, nil);
+	self.event_handlers:remove(object, event, handler);
 	return object.remove_handler(event, handler);
 end
 
