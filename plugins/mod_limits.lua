@@ -67,6 +67,7 @@ local function limit_ip_sessions(session_type, max_sessions)
 	-- [packed_truncated_ip] = count
 	local current_ips = module:shared("ips."..session_type);
 	module:hook(session_type.."-connected", function (event)
+		if not event.session then return; end
 		local session_ip = get_truncated_ip(event.conn);
 		local new_count = (current_ips[session_ip] or 0) + 1;
 		current_ips[session_ip] = new_count;
@@ -77,6 +78,7 @@ local function limit_ip_sessions(session_type, max_sessions)
 	end);
 
 	module:hook(session_type.."-closed", function (event)
+		if not event.session then return; end
 		local session_ip = get_truncated_ip(event.conn);
 		local new_count = (current_ips[session_ip] or 0) - 1;
 		if new_count < 0 then
