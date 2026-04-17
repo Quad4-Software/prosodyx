@@ -915,6 +915,7 @@ function listener.onconnect(conn)
 	if not session then -- New incoming connection
 		session = s2s_new_incoming(conn);
 		sessions[conn] = session;
+		event_data.session = session;
 		session.log("debug", "Incoming s2s connection");
 		module:fire_event("s2sin-connected", event_data)
 		initialize_session(session);
