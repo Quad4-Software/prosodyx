@@ -75,7 +75,6 @@ local max_inactive_unacked_stanzas = module:get_option_integer("smacks_max_inact
 local delayed_ack_timeout = module:get_option_period("smacks_max_ack_delay", 30);
 local max_old_sessions = module:get_option_integer("smacks_max_old_sessions", 10, 0);
 
-local c2s_sessions = module:shared("/*/c2s/sessions");
 local local_sessions = prosody.hosts[module.host].sessions;
 
 local function format_h(h) if h then return string.format("%d", h) end end
@@ -554,10 +553,7 @@ module:hook("pre-resource-unbind", function (event)
 		});
 	end);
 	if session.conn then
-		local conn = session.conn;
-		c2s_sessions[conn] = nil;
-		session.conn = nil;
-		conn:close();
+		session.conn:close();
 	end
 	session.log("debug", "Session going into hibernation (not being destroyed)")
 	module:fire_event("smacks-hibernation-start", { origin = session; queue = session.outgoing_stanza_queue:table() });

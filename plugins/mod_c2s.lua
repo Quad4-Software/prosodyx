@@ -438,7 +438,9 @@ function listener.ondisconnect(conn, err)
 	if session then
 		(session.log or log)("info", "Client disconnected: %s", err or "connection closed");
 		stop_session_timers(session);
-		sm_destroy_session(session, err);
+		if not session.hibernating then
+			sm_destroy_session(session, err);
+		end
 		session.conn = nil;
 		sessions[conn]  = nil;
 	end
