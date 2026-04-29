@@ -71,6 +71,7 @@ local function limit_ip_sessions(session_type, max_sessions)
 		local session_ip = get_truncated_ip(event.conn);
 		local new_count = (current_ips[session_ip] or 0) + 1;
 		current_ips[session_ip] = new_count;
+		module:log("debug", "Connection from IP %s opened, total now %d", event.conn:ip(), new_count);
 		if new_count > max_sessions then
 			module:log("warn", "Rejecting stream from %s (%d of %d current connections)", event.conn:ip(), new_count, max_sessions);
 			event.session:close({ condition = "policy-violation", text = "too many connections" });
@@ -85,6 +86,7 @@ local function limit_ip_sessions(session_type, max_sessions)
 			module:log("warn", "IP counting failure");
 			new_count = 0;
 		end
+		module:log("debug", "Connection from IP %s closed, total now %d", event.conn:ip(), new_count);
 		if new_count == 0 then
 			current_ips[session_ip] = nil;
 		else
