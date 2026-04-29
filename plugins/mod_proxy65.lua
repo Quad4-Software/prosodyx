@@ -60,8 +60,6 @@ function listener.onincoming(conn, data)
 				transfers[sha].initiator = conn;
 				session.sha = sha;
 				module:log("debug", "SOCKS5 initiator connected for session %s", sha);
-				server.link(conn, transfers[sha].target, max_buffer_size);
-				server.link(transfers[sha].target, conn, max_buffer_size);
 			end
 		else -- error, unexpected input
 			conn:write("\5\1\0\3\0\0\0"); -- VER, REP, RSV, ATYP, BND.ADDR (sha), BND.PORT (2 Byte)
@@ -166,6 +164,8 @@ function module.add_host(module)
 			else -- if transfers[sha].initiator ~= nil and transfers[sha].target ~= nil then
 				module:log("debug", "Transfer activated (%s)", info);
 				transfers[sha].activated = true;
+				server.link(transfers[sha].initiator, transfers[sha].target, max_buffer_size);
+				server.link(transfers[sha].target, transfers[sha].initiator, max_buffer_size);
 				transfers[sha].target:resume();
 				transfers[sha].initiator:resume();
 				origin.send(st.reply(stanza));
