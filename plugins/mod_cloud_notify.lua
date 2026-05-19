@@ -397,8 +397,8 @@ local function handle_notify_request(stanza, node, user_push_services, log_push_
 				id2identifier[stanza_id] = push_identifier;
 				module:send_iq(push_publish):next(handle_push_success, handle_push_error):finally(function ()
 					-- unhook iq handlers for this identifier (if possible)
-					id2node[stanza.attr.id] = nil;
-					id2identifier[stanza.attr.id] = nil;
+					id2node[stanza_id] = nil;
+					id2identifier[stanza_id] = nil;
 				end);
 				pushes = pushes + 1;
 			end
