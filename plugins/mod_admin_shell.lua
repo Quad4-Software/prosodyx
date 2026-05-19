@@ -1880,9 +1880,6 @@ function def_env.user:create(jid, password, role)
 			return promise.reject("Unacceptable password");
 		end
 
-		self.session.print(("PW: %q"):format(raw_password));
-		self.session.print(("PW2: %q"):format(prepped_password));
-
 		local ok, err = um.create_user_with_role(username, prepped_password, host, role);
 		if not ok then
 			return promise.reject("Could not create user: "..err);
@@ -1953,9 +1950,6 @@ function def_env.user:password(jid, password)
 		if not prepped_password or prepped_password == "" then
 			return promise.reject("Unacceptable password");
 		end
-
-		self.session.print(("PW: %q"):format(raw_password));
-		self.session.print(("PW2: %q"):format(prepped_password));
 
 		local ok, err = um.set_password(username, prepped_password, host, nil);
 		if ok then
