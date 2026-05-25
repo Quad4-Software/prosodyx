@@ -185,7 +185,7 @@ function packet_methods:deserialize(bytes)
 		local attr_type, attr_len = struct.unpack(">I2I2", attr_hdr); --luacheck: ignore 211/attr_type
 		if attr_len == 0 then
 			table.insert(self.attributes, attr_hdr);
-			pos = pos + 20;
+			pos = pos + 4;
 		else
 			local data = bytes:sub(pos + 4, pos + 3 + attr_len);
 			assert(#data == attr_len, "packet truncated in attribute value");
