@@ -511,7 +511,7 @@ function service:delete(node, actor) --> ok, err
 	if self.config.nodestore then
 		local ok, err = delete_node_in_store(self, node);
 		if not ok then
-			self.nodes[node] = nil;
+			self.nodes[node] = node_obj;
 			return ok, err;
 		end
 	end
