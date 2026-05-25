@@ -498,9 +498,10 @@ static int l_signalfd_close(lua_State *L) {
 		return 1;
 	}
 
-	for(int i = signalfd_num; i > 0; i--) {
+	for(int i = signalfd_num - 1; i >= 0; i--) {
 		if(signalfds[i].fd == sfd->fd) {
-			signalfds[i] = signalfds[signalfd_num--];
+			signalfds[i] = signalfds[--signalfd_num];
+			break;
 		}
 	}
 
