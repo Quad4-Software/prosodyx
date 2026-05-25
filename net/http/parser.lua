@@ -4,6 +4,10 @@ local url_parse = require "socket.url".parse;
 local urldecode = require "prosody.util.http".urldecode;
 local dbuffer = require "prosody.util.dbuffer";
 
+
+-- This is a basic check, and does *not* fully prevent path traversal (CWE-22).
+-- If the path will be mapped to a filesystem, further processing and checks
+-- are needed for safety and compliance. This is handled by net.http.files.
 local function preprocess_path(path)
 	path = urldecode((path:gsub("//+", "/")));
 	if path:sub(1,1) ~= "/" then
