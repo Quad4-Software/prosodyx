@@ -99,7 +99,7 @@ static int find(ringbuffer *b, const char *s, size_t l) {
 				}
 
 			if(m) {
-				return i + l;
+				return i + 1;
 			}
 		}
 	}

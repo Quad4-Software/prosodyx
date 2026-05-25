@@ -35,6 +35,22 @@ describe("util.ringbuffer", function ()
 		end);
 	end);
 
+	describe(":find", function ()
+		local function test_find(b, str, expected)
+			if expected ~= nil then
+				assert.equal(expected, b:find(str));
+			else
+				assert.is_nil(b:find(str));
+			end
+		end
+
+		it("works", function ()
+			local b = rb.new();
+			assert.truthy(b:write("hello world"));
+			test_find(b, "world", 7);
+		end);
+	end);
+
 	describe(":sub", function ()
 		-- Helper function to compare buffer:sub() with string:sub()
 		local function test_sub(b, x, y)
