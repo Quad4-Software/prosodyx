@@ -132,7 +132,7 @@ static int base_evp_sign(lua_State *L, const int key_type, const EVP_MD *digest_
 	luaL_Buffer sigbuf;
 
 	size_t msg_len;
-	const unsigned char* msg = (unsigned char*)lua_tolstring(L, 2, &msg_len);
+	const unsigned char* msg = (unsigned char*)luaL_checklstring(L, 2, &msg_len);
 
 	size_t sig_len;
 	unsigned char *sig = NULL;
