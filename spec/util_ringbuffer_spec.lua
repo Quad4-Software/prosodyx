@@ -49,6 +49,35 @@ describe("util.ringbuffer", function ()
 			assert.truthy(b:write("hello world"));
 			test_find(b, "world", 7);
 		end);
+
+		it("works across wraps", function ()
+			local b = rb.new(5);
+			assert.truthy(b:write("12345"));
+			assert.equal("123", b:read(3));
+			assert.truthy(b:write("678"));
+			test_find(b, "45678", 1);
+			test_find(b, "567", 2);
+			test_find(b, "56", 2);
+			test_find(b, "5", 2);
+			test_find(b, "6", 3);
+			test_find(b, "7", 4);
+			test_find(b, "8", 5);
+			test_find(b, "9", nil);
+		end);
+
+		it("no match when the needle is larger than the buffer", function ()
+			for i = 5, 11 do
+				local b = rb.new(i);
+				assert.truthy(b:write("hello"));
+				test_find(b, "hello world", nil);
+			end
+		end);
+
+		it("no match when the needle is an empty string", function ()
+			local b = rb.new(5);
+			assert.truthy(b:write("hello"));
+			test_find(b, "", nil);
+		end);
 	end);
 
 	describe(":sub", function ()
