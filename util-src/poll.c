@@ -139,7 +139,7 @@ static int Ladd(lua_State *L) {
 #endif
 #ifdef USE_SELECT
 
-	if(fd > FD_SETSIZE) {
+	if(fd >= FD_SETSIZE) {
 		luaL_pushfail(L);
 		lua_pushstring(L, strerror(EBADF));
 		lua_pushinteger(L, EBADF);
