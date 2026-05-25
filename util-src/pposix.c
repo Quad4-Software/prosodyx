@@ -169,6 +169,7 @@ static const char *const facility_strings[] = {
 	"local7",
 	"lpr",
 	"mail",
+	"news",
 	"syslog",
 	"user",
 	"uucp",
