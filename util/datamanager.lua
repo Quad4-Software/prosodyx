@@ -668,7 +668,7 @@ local function stores(username, host, typ)
 					if lfs.attributes(getpath(username, host, store_name, typ), "mode") then
 						return store_name;
 					end
-				elseif lfs.attributes(node, "mode") == "file" then
+				elseif lfs.attributes(store_dir..node, "mode") == "file" then
 					local file, ext = node:match("^(.*)%.([dalist]+)$");
 					if ext == typ then
 						return decode(file)
