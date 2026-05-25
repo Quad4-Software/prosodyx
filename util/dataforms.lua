@@ -252,7 +252,7 @@ field_readers["jid-multi"] =
 				err[#err+1] = ("Invalid JID: " .. raw_value);
 			end
 		end
-		if #result > 0 then
+		if #result > 0 or #err > 0 then
 			return result, (#err > 0 and t_concat(err, "\n") or nil);
 		elseif required then
 			return nil, "Required value missing";
