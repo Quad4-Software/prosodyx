@@ -10,7 +10,7 @@ local function preprocess_path(path)
 		path = "/"..path;
 	end
 	local level = 0;
-	for component in path:gmatch("([^/]+)/") do
+	for component in path:gmatch("([^/]+)") do
 		if component == ".." then
 			level = level - 1;
 		elseif component ~= "." then
