@@ -126,7 +126,7 @@ local function validate(schema, data, root, sloc, iloc, errs)
 	end
 
 	if type(data) == "number" then
-		if schema.multipleOf and (data == 0 or data % schema.multipleOf ~= 0) then
+		if schema.multipleOf and data ~= 0 and data % schema.multipleOf ~= 0 then
 			table.insert(errs, mkerr(sloc .. "/luaPattern", iloc, "not a multiple"))
 			return false, errs
 		end
