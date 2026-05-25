@@ -305,7 +305,7 @@ function service:set_affiliation(node, actor, jid, affiliation) --> ok, err
 			return ok, err;
 		end
 	elseif jid_sub and not self:may(node, jid, "be_subscribed") then
-		local ok, err = self:add_subscription(node, true, jid);
+		local ok, err = self:remove_subscription(node, true, jid);
 		if not ok then
 			return ok, err;
 		end
