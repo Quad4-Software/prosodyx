@@ -68,5 +68,6 @@ function get_avatar_hash(username)
 
 	local photo_b64 = photo:get_child_text("BINVAL");
 	local photo_raw = photo_b64 and base64.decode(photo_b64);
+	if not photo_raw then return end
 	return (sha1(photo_raw, true));
 end
