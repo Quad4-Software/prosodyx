@@ -240,7 +240,7 @@ local function connect(url, ex, listeners)
 		insecure = ex.insecure;
 	}, function(b, c, r, http_req)
 		if c ~= 101
-		   or r.headers["connection"]:lower() ~= "upgrade"
+		   or (r.headers["connection"] or ""):lower() ~= "upgrade"
 		   or r.headers["upgrade"] ~= "websocket"
 		   or r.headers["sec-websocket-accept"] ~= base64.encode(sha1(key .. "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))
 		   or (protocol and not protocol[r.headers["sec-websocket-protocol"]])
