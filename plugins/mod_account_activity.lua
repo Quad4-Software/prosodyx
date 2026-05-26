@@ -57,8 +57,6 @@ module:add_item("shell-command", {
 	};
 	host_selector = "host";
 	handler = function(self, host, duration) --luacheck: ignore 212/self
-		opts = opts or {};
-
 		local um = require "prosody.core.usermanager";
 		local duration_sec = require "prosody.util.human.io".parse_duration(duration or "");
 		if not duration_sec then
