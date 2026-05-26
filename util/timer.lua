@@ -109,7 +109,7 @@ end
 local function reschedule(id, delay)
 	local current_time = get_time();
 	local event_time = current_time + delay;
-	h:reprioritize(id, delay);
+	h:reprioritize(id, event_time);
 	if next_time == nil or event_time < next_time then
 		next_time = event_time;
 		_add_task(next_time - current_time, _on_timer);
