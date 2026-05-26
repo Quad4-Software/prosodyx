@@ -206,7 +206,7 @@ function archive_store:set(username, wanted_key, new_value, new_when, new_with)
 		item.when = new_when;
 	end
 	if new_with then
-		item.with = new_when;
+		item.with = new_with;
 	end
 	return true;
 end
