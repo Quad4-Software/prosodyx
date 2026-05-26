@@ -947,7 +947,7 @@ local function watchfd(fd, onreadable, onwriteable)
 				self.wantwrite = base:addevent(fd, EV_WRITE, function ()
 					onwriteable(self);
 				end);
-			elseif not r and self.wantread then
+			elseif not w and self.wantwrite then
 				self.wantwrite:close();
 				self.wantwrite = nil;
 			end
