@@ -59,8 +59,8 @@ local function unsubscribe_session_stanzas(session, handler, reason)
 	if #active_filter.downstream == 0 then
 		filters.remove_filter(session, "stanzas/in", active_filter.filter_in);
 		filters.remove_filter(session, "stanzas/out", active_filter.filter_out);
+		active_filters[session] = nil;
 	end
-	active_filters[session] = nil;
 end
 
 local function unsubscribe_all_from_session(session, reason)
