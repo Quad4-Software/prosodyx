@@ -634,8 +634,6 @@ function startup.switch_user()
 			end
 		end
 
-		-- Set our umask to protect data files
-		pposix.umask(config.get("*", "umask") or "027");
 		pposix.setenv("HOME", prosody.paths.data);
 		pposix.setenv("PROSODY_CONFIG", prosody.config_file);
 	else
@@ -725,9 +723,9 @@ function startup.make_dummy_hosts()
 	end
 end
 
-function startup.posix_umask()
+function startup.set_umask()
 	if prosody.platform ~= "posix" then return end
-	local pposix = require "prosody.util.pposix";
+	local pposix = check_posix();
 	local umask = config.get("*", "umask") or "027";
 	pposix.umask(umask);
 end
@@ -936,6 +934,7 @@ function startup.prosodyctl()
 	startup.chdir();
 	startup.read_version();
 	startup.switch_user();
+	startup.set_umask();
 	startup.check_dependencies();
 	startup.log_startup_warnings();
 	startup.check_unwriteable();
@@ -964,6 +963,7 @@ function startup.prosody()
 	startup.setup_plugin_install_path();
 	startup.setup_datadir();
 	startup.chdir();
+	startup.set_umask();
 	startup.add_global_prosody_functions();
 	startup.read_version();
 	startup.log_greeting();
