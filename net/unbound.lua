@@ -42,13 +42,6 @@ local function add_defaults(conf)
 end
 
 local unbound_config;
-if prosody then
-	local config = require"prosody.core.configmanager";
-	unbound_config = add_defaults(config.get("*", "unbound"));
-	prosody.events.add_handler("config-reloaded", function()
-		unbound_config = add_defaults(config.get("*", "unbound"));
-	end);
-end
 -- Note: libunbound will default to using root hints if resolvconf is unset
 
 local function connect_server(unbound, server)
@@ -64,9 +57,6 @@ local unbound, server_conn;
 local function initialize()
 	unbound = libunbound.new(unbound_config);
 	server_conn = connect_server(unbound, net_server);
-end
-if prosody then
-	prosody.events.add_handler("server-started", initialize);
 end
 
 local answer_mt = {
@@ -179,6 +169,16 @@ local function purge()
 	if server_conn then server_conn:close(); end
 	initialize();
 	return true;
+end
+
+if prosody then
+	local config = require"prosody.core.configmanager";
+	unbound_config = add_defaults(config.get("*", "unbound"));
+	prosody.events.add_handler("config-reloaded", function()
+		unbound_config = add_defaults(config.get("*", "unbound"));
+		purge();
+	end);
+	prosody.events.add_handler("server-started", initialize);
 end
 
 local function not_implemented()
