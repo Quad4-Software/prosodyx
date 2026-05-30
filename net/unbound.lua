@@ -83,8 +83,6 @@ local answer_mt = {
 	end;
 };
 
-local waiting_queries = {};
-
 local function prep_answer(a)
 	if not a then return end
 	local status = errors[a.rcode];
@@ -117,11 +115,9 @@ local function lookup(callback, qname, qtype, qclass)
 	local ntype, nclass = types[qtype], classes[qclass];
 
 	local m;
-	local ret;
 	local log_query = logger.init("unbound.query"..new_id());
 	local function callback_wrapper(a, err)
 		m();
-		waiting_queries[ret] = nil;
 		if a then
 			prep_answer(a);
 			log_query("debug", "Results for %s %s %s: %s (%s)", qname, qclass, qtype, a.rcode == 0 and (#a .. " items") or a.status,
@@ -134,11 +130,8 @@ local function lookup(callback, qname, qtype, qclass)
 	end
 	log_query("debug", "Resolve %s %s %s", qname, qclass, qtype);
 	m = measure(qclass, qtype);
-	local err;
-	ret, err = unbound:resolve_async(callback_wrapper, qname, ntype, nclass);
-	if ret then
-		waiting_queries[ret] = callback;
-	else
+	local ret, err = unbound:resolve_async(callback_wrapper, qname, ntype, nclass);
+	if not ret then
 		log_query("error", "Resolver error: %s", err);
 	end
 	return ret, err;
@@ -154,24 +147,15 @@ local function lookup_sync(qname, qtype, qclass)
 	return prep_answer(a);
 end
 
-local function cancel(id)
-	local cb = waiting_queries[id];
-	unbound:cancel(id);
-	if cb then
-		cb(nil, "canceled");
-		waiting_queries[id] = nil;
-	end
-	return true;
-end
-
 -- Reinitiate libunbound context, drops cache
 local function purge()
 	if server_conn then
 		local old_unbound, old_server_conn = unbound, server_conn;
 		timer.add_task(30, function()
 			old_server_conn:close();
-			-- Blocking wait for any straggler queries to prevent "leak" of waiting_queries[] entries
-			old_unbound:wait();
+			if old_unbound.cancelall then
+				old_unbound:cancelall();
+			end
 		end)
 	end
 	initialize();
@@ -194,11 +178,11 @@ end
 -- Public API
 local _M = {
 	lookup = lookup;
-	cancel = cancel;
+	cancel = not_implemented;
 	new_async_socket = not_implemented;
 	dns = {
 		lookup = lookup_sync;
-		cancel = cancel;
+		cancel = not_implemented;
 		cache = noop;
 		socket_wrapper_set = noop;
 		settimeout = noop;
