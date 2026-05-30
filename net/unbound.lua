@@ -19,6 +19,7 @@ local net_server = require "prosody.net.server";
 local libunbound = require"lunbound";
 local promise = require"prosody.util.promise";
 local new_id = require "prosody.util.id".short;
+local timer = require "prosody.util.timer";
 
 local dns_utils = require"prosody.util.dns";
 local classes, types, errors = dns_utils.classes, dns_utils.types, dns_utils.errors;
@@ -165,8 +166,14 @@ end
 
 -- Reinitiate libunbound context, drops cache
 local function purge()
-	for id in pairs(waiting_queries) do cancel(id); end
-	if server_conn then server_conn:close(); end
+	if server_conn then
+		local old_unbound, old_server_conn = unbound, server_conn;
+		timer.add_task(30, function()
+			old_server_conn:close();
+			-- Blocking wait for any straggler queries to prevent "leak" of waiting_queries[] entries
+			old_unbound:wait();
+		end)
+	end
 	initialize();
 	return true;
 end
