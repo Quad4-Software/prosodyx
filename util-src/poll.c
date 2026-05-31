@@ -234,6 +234,13 @@ static int Lset(lua_State *L) {
 #endif
 #ifdef USE_SELECT
 
+	if(fd >= FD_SETSIZE) {
+		luaL_pushfail(L);
+		lua_pushstring(L, strerror(EBADF));
+		lua_pushinteger(L, EBADF);
+		return 3;
+	}
+
 	if(!FD_ISSET(fd, &state->all)) {
 		luaL_pushfail(L);
 		lua_pushstring(L, strerror(ENOENT));
@@ -326,6 +333,13 @@ static int Ldel(lua_State *L) {
 	return 3;
 #endif
 #ifdef USE_SELECT
+
+	if(fd >= FD_SETSIZE) {
+		luaL_pushfail(L);
+		lua_pushstring(L, strerror(EBADF));
+		lua_pushinteger(L, EBADF);
+		return 3;
+	}
 
 	if(!FD_ISSET(fd, &state->all)) {
 		luaL_pushfail(L);
