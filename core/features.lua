@@ -37,5 +37,8 @@ return {
 
 		-- SIGUSR1 and 2 events
 		"signal-events";
+
+		-- util.human.io.simple_version_compare
+		"simple-version-compare";
 	};
 };

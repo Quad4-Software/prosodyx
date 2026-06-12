@@ -222,6 +222,29 @@ local function parse_duration_lax(duration_string)
 	return tonumber(n) * ( multipliers_lax[m] or 1 );
 end
 
+-- Compares simple version strings (numeric only, not semver compatible)
+-- (can be passed to table.sort)
+local function simple_version_compare(a, b)
+	local a_f, a_s, a_part = a:gmatch("%d+");
+	local b_f, b_s, b_part = b:gmatch("%d+");
+
+	a_part = a_f(a_s, a_part);
+	b_part = b_f(b_s, b_part);
+
+	while a_part and b_part do
+		local an, bn = tonumber(a_part), tonumber(b_part);
+		if an ~= bn then
+			return an < bn;
+		end
+		a_part = a_f(a_s, a_part);
+		b_part = b_f(b_s, b_part);
+	end
+
+	-- return true (a is lower) if b is exhausted
+	-- otherwise, they are equal or b is longer/greater (-> return false)
+	return b_part ~= nil;
+end
+
 return {
 	getchar = getchar;
 	getline = getline;
@@ -237,4 +260,5 @@ return {
 	table = new_table;
 	parse_duration = parse_duration;
 	parse_duration_lax = parse_duration_lax;
+	simple_version_compare = simple_version_compare;
 };

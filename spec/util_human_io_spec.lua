@@ -100,6 +100,79 @@ describe("util.human.io", function ()
 			return assert.is_nil(human_io.parse_duration_lax("two weeks"), "\"2 weeks\" -> nil");
 		end);
 	end);
+
+	describe("simple_version_compare", function ()
+		local version_compare = human_io.simple_version_compare;
+
+		local function cmp_version(a, b, exp)
+			assert.equal(exp, version_compare(a, b), ("%q < %q"):format(a, b));
+		end
+
+		it("orders versions with differing major numbers", function ()
+			cmp_version("1.0", "2.0", true);
+			cmp_version("2.0", "1.0", false);
+		end);
+
+		it("orders versions with differing minor numbers", function ()
+			cmp_version("1.0", "1.1", true);
+			cmp_version("1.1", "1.0", false);
+		end);
+
+		it("treats a shorter version as less than a longer one sharing the same prefix", function ()
+			cmp_version("1.0", "1.0.1", true);
+			cmp_version("1.0.1", "1.0", false);
+
+			cmp_version("1", "1.0", true);
+			cmp_version("1", "1.1", true);
+
+			cmp_version("1.0.0", "1.0.0.1", true);
+		end);
+
+		it("compares components left-to-right regardless of how many components there are", function ()
+			cmp_version("1.0.1", "1.1", true);
+			cmp_version("1.1", "1.0.1", false);
+
+			cmp_version("1.0.1", "1.1.0", true);
+			cmp_version("1.1.0", "1.0.1", false);
+
+			cmp_version("1.0.0.1", "1.0.1", true);
+		end);
+
+		it("never considers a version less than itself", function ()
+			cmp_version("0", "0", false);
+			cmp_version("1.0", "1.0", false);
+			cmp_version("1.2.3", "1.2.3", false);
+			cmp_version("foo", "foo", false);
+		end);
+
+		it("compares components numerically", function ()
+			cmp_version("1.9", "1.10", true);
+			cmp_version("1.10", "1.9", false);
+
+			cmp_version("1.9.9", "1.10.0", true);
+
+			cmp_version("2.0", "10.0", true);
+			cmp_version("10.0", "2.0", false);
+
+			cmp_version("1.2", "1.10", true);
+
+			cmp_version("1.99", "1.100", true);
+			cmp_version("1.100", "1.99", false);
+		end);
+
+		it("handles leading zeros in numeric components", function ()
+			cmp_version("1.02", "1.10", true);
+			cmp_version("1.10", "1.02", false);
+		end);
+
+		it("treats an empty or non-numeric string as a version with no components", function ()
+			cmp_version("", "1.0", true);
+			cmp_version("1.0", "", false);
+			cmp_version("foo", "1.0", true);
+			cmp_version("1.0", "foo", false);
+			cmp_version("", "", false);
+		end);
+	end);
 end);
 
 
