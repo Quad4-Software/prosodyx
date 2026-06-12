@@ -12,6 +12,8 @@ local new_config = require"prosody.net.server".tls_builder;
 local tls = require "prosody.net.tls_luasec";
 local stat = require "lfs".attributes;
 
+local tlsref = require "prosody.util.tlsref";
+
 local x509 = require "prosody.util.x509";
 local lfs = require "lfs";
 
@@ -216,84 +218,6 @@ local core_defaults = {
 	dane = tls.features.capabilities.dane and configmanager.get("*", "use_dane") and { "no_ee_namechecks" };
 }
 
--- https://datatracker.ietf.org/doc/html/rfc7919#appendix-A.1
-local ffdhe2048 = [[
------BEGIN DH PARAMETERS-----
-MIIBCAKCAQEA//////////+t+FRYortKmq/cViAnPTzx2LnFg84tNpWp4TZBFGQz
-+8yTnc4kmz75fS/jY2MMddj2gbICrsRhetPfHtXV/WVhJDP1H18GbtCFY2VVPe0a
-87VXE15/V8k1mE8McODmi3fipona8+/och3xWKE2rec1MKzKT0g6eXq8CrGCsyT7
-YdEIqUuyyOP7uWrat2DX9GgdT0Kj3jlN9K5W7edjcrsZCwenyO4KbXCeAvzhzffi
-7MA0BM0oNC9hkXL+nOmFg/+OTxIy7vKBg8P+OxtMb61zO7X8vC7CIAXFjvGDfRaD
-ssbzSibBsu/6iGtCOGEoXJf//////////wIBAg==
------END DH PARAMETERS-----
-]]
-
-local mozilla_ssl_configs = {
-	-- https://wiki.mozilla.org/Security/Server_Side_TLS
-	-- Version 5.7 as of 2023-07-09
-	modern = {
-		protocol = "tlsv1_3";
-		options = { cipher_server_preference = false };
-		ciphers = "DEFAULT"; -- TLS 1.3 uses 'ciphersuites' rather than these
-		curveslist = { "X25519"; "prime256v1"; "secp384r1" };
-		ciphersuites = { "TLS_AES_128_GCM_SHA256"; "TLS_AES_256_GCM_SHA384"; "TLS_CHACHA20_POLY1305_SHA256" };
-	};
-	intermediate = {
-		protocol = "tlsv1_2+";
-		dhparam = ffdhe2048;
-		options = { cipher_server_preference = false };
-		ciphers = {
-			"ECDHE-ECDSA-AES128-GCM-SHA256";
-			"ECDHE-RSA-AES128-GCM-SHA256";
-			"ECDHE-ECDSA-AES256-GCM-SHA384";
-			"ECDHE-RSA-AES256-GCM-SHA384";
-			"ECDHE-ECDSA-CHACHA20-POLY1305";
-			"ECDHE-RSA-CHACHA20-POLY1305";
-			"DHE-RSA-AES128-GCM-SHA256";
-			"DHE-RSA-AES256-GCM-SHA384";
-			"DHE-RSA-CHACHA20-POLY1305";
-		};
-		curveslist = { "X25519"; "prime256v1"; "secp384r1" };
-		ciphersuites = { "TLS_AES_128_GCM_SHA256"; "TLS_AES_256_GCM_SHA384"; "TLS_CHACHA20_POLY1305_SHA256" };
-	};
-	old = {
-		protocol = "tlsv1+";
-		dhparam = nil; -- openssl dhparam 1024
-		options = { cipher_server_preference = true };
-		ciphers = {
-			"ECDHE-ECDSA-AES128-GCM-SHA256";
-			"ECDHE-RSA-AES128-GCM-SHA256";
-			"ECDHE-ECDSA-AES256-GCM-SHA384";
-			"ECDHE-RSA-AES256-GCM-SHA384";
-			"ECDHE-ECDSA-CHACHA20-POLY1305";
-			"ECDHE-RSA-CHACHA20-POLY1305";
-			"DHE-RSA-AES128-GCM-SHA256";
-			"DHE-RSA-AES256-GCM-SHA384";
-			"DHE-RSA-CHACHA20-POLY1305";
-			"ECDHE-ECDSA-AES128-SHA256";
-			"ECDHE-RSA-AES128-SHA256";
-			"ECDHE-ECDSA-AES128-SHA";
-			"ECDHE-RSA-AES128-SHA";
-			"ECDHE-ECDSA-AES256-SHA384";
-			"ECDHE-RSA-AES256-SHA384";
-			"ECDHE-ECDSA-AES256-SHA";
-			"ECDHE-RSA-AES256-SHA";
-			"DHE-RSA-AES128-SHA256";
-			"DHE-RSA-AES256-SHA256";
-			"AES128-GCM-SHA256";
-			"AES256-GCM-SHA384";
-			"AES128-SHA256";
-			"AES256-SHA256";
-			"AES128-SHA";
-			"AES256-SHA";
-			"DES-CBC3-SHA";
-		};
-		curveslist = { "X25519"; "prime256v1"; "secp384r1" };
-		ciphersuites = { "TLS_AES_128_GCM_SHA256"; "TLS_AES_256_GCM_SHA384"; "TLS_CHACHA20_POLY1305_SHA256" };
-	};
-};
-
-
 if tls.features.curves then
 	for i = #core_defaults.curveslist, 1, -1 do
 		if not tls.features.curves[ core_defaults.curveslist[i] ] then
@@ -321,12 +245,33 @@ local function create_context(host, mode, ...)
 		-- We can't read the password interactively when daemonized
 		password = function() log("error", "Encrypted certificate for %s requires 'ssl' 'password' to be set in config", host); end;
 	});
-	local profile = configmanager.get("*", "tls_profile") or "intermediate";
-	if mozilla_ssl_configs[profile] then
-		cfg:apply(mozilla_ssl_configs[profile]);
-	elseif profile ~= "legacy" then
-		log("error", "Invalid value for 'tls_profile': expected one of \"modern\", \"intermediate\" (default), \"old\" or \"legacy\" but got %q", profile);
-		return nil, "Invalid configuration, 'tls_profile' had an unknown value.";
+	local profile_version = configmanager.get("*", "tls_profile_version");
+	local profile_name = configmanager.get("*", "tls_profile");
+
+	if profile_name ~= "legacy" then
+		local tls_profile, tls_profile_err = tlsref.get_profile(profile_version, profile_name);
+		if not tls_profile then
+			if tls_profile_err == "unknown-version" then
+				log(
+					"error",
+					"Invalid value %q for 'tls_profile_version': expected one of: \"%s\" or \"latest\"",
+					profile_version,
+					tlsref.get_valid_versions():concat("\", \"")
+				);
+				return nil, "Invalid configuration, 'tls_profile_version' had an unknown value.";
+			elseif tls_profile_err == "unknown-profile" then
+				log(
+					"error",
+					"Invalid value %q for 'tls_profile': expected one of \"%s\" or \"legacy\" (default: %q)",
+					profile_name,
+					tlsref.get_valid_profile_names(profile_version):concat("\", \""),
+					tlsref.get_default_profile_name(profile_version)
+				);
+				return nil, "Invalid configuration, 'tls_profile' had an unknown value.";
+			end
+		else
+			cfg:apply(tls_profile);
+		end
 	end
 	cfg:apply(global_ssl_config);
 
