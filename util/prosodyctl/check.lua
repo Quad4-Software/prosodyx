@@ -464,6 +464,7 @@ local function check(arg)
 			"statistics_interval",
 			"tcp_keepalives",
 			"tls_profile",
+			"tls_profile_version",
 			"trusted_proxies",
 			"umask",
 			"use_dane",
@@ -723,6 +724,26 @@ local function check(arg)
 			print("    You require encryption but mod_tls is not enabled.");
 			print("    Connections will fail.");
 			ok = false;
+		end
+
+		do
+			local tlsref = require "prosody.util.tlsref";
+			local tls_profile_name = configmanager.get("*", "tls_profile");
+			local tls_profile_version = configmanager.get("*", "tls_profile_version");
+			local profile, err = tlsref.get_profile(tls_profile_version, tls_profile_name);
+			if not profile then
+				print("");
+				print("    TLS profile selection:");
+				if err == "unknown-version" then
+					print(("        tls_profile_version is set to an unknown value (%q)"):format(tls_profile_version));
+					print(("        Valid values: \"%s\""):format(tlsref.get_valid_versions():concat("\", \"")));
+				elseif err == "unknown-profile" then
+					print(("        tls_profile is set to an unknown value (%q)"):format(tls_profile_name));
+					print(("        Valid values: \"%s\""):format(tlsref.get_valid_profile_names():concat("\", \"")));
+				else
+					print(("        Unknown error loading the configured profile: %s"):format(err));
+				end
+			end
 		end
 
 		do
