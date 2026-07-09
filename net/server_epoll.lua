@@ -1024,6 +1024,7 @@ local function wrapserver(conn, addr, port, listeners, config)
 		listeners = listeners;
 		read_size = config and config.read_size;
 		onreadable = interface.onacceptable;
+		setreadtimeout = noop;
 		tls_ctx = config and config.tls_ctx;
 		tls_direct = config and config.tls_direct;
 		hosts = config and config.sni_hosts;
