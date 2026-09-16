@@ -30,6 +30,8 @@ function websocket_listeners.ondisconnect(conn, err)
 		s.close_timer = nil;
 	end
 	s.readyState = 3;
+	s.conn = nil;
+	s.readbuffer, s.databuffer = "", nil;
 	if s.close_code == nil and s.onerror then s:onerror(err); end
 	if s.onclose then s:onclose(s.close_code, s.close_message or err); end
 end
@@ -40,8 +42,9 @@ end
 
 local function fail(s, code, reason)
 	log("warn", "WebSocket connection failed, closing. %d %s", code, reason);
+	local conn = s.conn;
 	s:close(code, reason);
-	s.conn:close();
+	conn:close();
 	return false
 end
 
@@ -136,6 +139,7 @@ function websocket_methods:close(code, reason)
 		self.readyState = 2;
 		local conn = self.conn;
 		conn:write(frames.build_close(code, reason, true));
+		if self.readyState == 3 then return; end
 		-- Do not close socket straight away, wait for acknowledgement from server.
 		self.close_timer = timer.add_task(close_timeout, close_timeout_cb, self);
 	elseif self.readyState == 2 then
