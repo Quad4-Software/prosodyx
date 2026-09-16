@@ -229,6 +229,8 @@ function interface_mt:_start_ssl(call_onconnect) -- old socket will be destroyed
 	return true
 end
 function interface_mt:_destroy()  -- close this interface + events and call last listener
+	if self._destroyed then return true; end
+	self._destroyed = true;
 	debug( "closing client with id:", self.id, self.fatalerror )
 	self:_lock( true, true, true )  -- first of all, lock the interface to avoid further actions
 	local _
@@ -248,11 +250,16 @@ function interface_mt:_destroy()  -- close this interface + events and call last
 		self.eventread, self.eventwrite = nil, nil
 		self.eventstarthandshake, self.eventhandshake, self.eventclose = nil, nil, nil
 		self.readcallback, self.writecallback = nil, nil
+		self.eventconnect, self.eventsession = nil, nil
+		self.eventwritetimeout, self.eventreadtimeout = nil, nil
+		self.startsslcallback = nil
 	else
 		self.conn:close( )
 		self.eventread, self.eventclose = nil, nil
 		self.interface, self.readcallback = nil, nil
 	end
+	self.conn = nil
+	self.writebuffer, self.writebufferlen = nil, 0
 	interfacelist[ self ] = nil
 	return true
 end
@@ -583,6 +590,7 @@ local function handleclient( client, ip, port, server, pattern, listener, sslctx
 				end
 			end
 			interface:onpredrain();
+			if interface._destroyed then return -1; end
 			interface.writebuffer = { t_concat(interface.writebuffer) }
 			local succ, err, byte = interface.conn:send( interface.writebuffer[1], 1, interface.writebufferlen )
 			--vdebug( "write data:", interface.writebuffer, "error:", err, "part:", byte )
@@ -590,6 +598,7 @@ local function handleclient( client, ip, port, server, pattern, listener, sslctx
 				interface.writebuffer[1] = nil
 				interface.writebufferlen = 0
 				interface:ondrain();
+				if interface._destroyed then return -1; end
 				if interface.fatalerror then
 					debug "closing client after writing"
 					interface:_close()  -- close interface if needed
@@ -654,6 +663,7 @@ local function handleclient( client, ip, port, server, pattern, listener, sslctx
 				interface.eventreadtimeout = nil
 			end
 		end
+		if interface._destroyed then return -1; end
 		local buffer, err, part = interface.conn:receive( interface._pattern )  -- receive buffer with "pattern"
 		--vdebug( "read data:", tostring(buffer), "error:", tostring(err), "part:", tostring(part) )
 		buffer = buffer or part
