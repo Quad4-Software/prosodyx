@@ -392,8 +392,12 @@ wrapconnection = function( server, listeners, socket, ip, serverport, clientport
 	handler.force_close = function ( self, err )
 		if bufferqueuelen ~= 0 then
 			out_put("server.lua: discarding unwritten data for ", tostring(ip), ":", tostring(clientport))
+			for i = 1, bufferqueuelen do
+				bufferqueue[i] = nil;
+			end
 			bufferqueuelen = 0;
 		end
+		bufferlen = 0;
 		return self:close(err);
 	end
 	handler.close = function( self, err )
