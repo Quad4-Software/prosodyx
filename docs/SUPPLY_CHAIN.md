@@ -26,8 +26,8 @@
 
 ## Verification
 
-Replace <TAG> and <VERSION> (for example v13.0.7-quad4.1 and
-13.0.7-quad4.1) and <DIGEST> with the image digest from the release.
+Replace <TAG> and <VERSION> (for example v13.0.7-quad4.2 and
+13.0.7-quad4.2) and <DIGEST> with the image digest from the release.
 
 Source tarball provenance:
 
