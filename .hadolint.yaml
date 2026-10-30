@@ -2,3 +2,9 @@ ignored:
   # Wolfi is a rolling package repository. Old package versions are
   # removed, so exact version pinning would break the build.
   - DL3018
+  # Each dependency is built in its own directory inside a single RUN.
+  # WORKDIR cannot express this loop.
+  - DL3003
+  # The split words are version strings from deps.lock and cannot
+  # contain spaces.
+  - SC2046
