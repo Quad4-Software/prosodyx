@@ -1,0 +1,64 @@
+name: Upstream release check
+
+on:
+  schedule:
+    - cron: "9 6 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: upstream-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Check for new upstream Prosody release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read # checkout
+      issues: write # open upstream release issues
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Compare upstream version
+        run: |
+          set -euo pipefail
+          base=$(sed 's/-quad4\..*//' prosody.release)
+          echo "Base version: $base"
+          listing=$(curl --fail --proto '=https' -sS https://prosody.im/downloads/source/)
+          latest=$(printf '%s' "$listing" \
+            | grep -oE 'prosody-13\.[0-9]+\.[0-9]+\.tar\.gz' \
+            | sed 's/^prosody-//; s/\.tar\.gz$//' \
+            | sort -Vu | tail -1)
+          echo "Latest upstream 13.x: $latest"
+          if [ "$latest" = "$base" ] || [ -z "$latest" ]; then
+            echo "Up to date"
+            exit 0
+          fi
+          newest=$(printf '%s\n%s\n' "$base" "$latest" | sort -Vu | tail -1)
+          if [ "$newest" = "$base" ]; then
+            echo "Up to date"
+            exit 0
+          fi
+          title="Upstream Prosody $latest released"
+          existing=$(gh issue list --state open --search "in:title \"$title\"" --json title --jq '.[].title' || true)
+          if [ "$existing" = "$title" ]; then
+            echo "Issue already open"
+            exit 0
+          fi
+          gh issue create \
+            --title "$title" \
+            --body "Upstream released Prosody $latest. This fork is based on $base. See https://prosody.im/downloads/source/ for the release and its signature."
+          echo "UPSTREAM_VERSION=$latest" >> "$GITHUB_STEP_SUMMARY"

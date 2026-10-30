@@ -1,0 +1,176 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*-quad4.*"
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify tag
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read # checkout
+    outputs:
+      version: ${{ steps.version.outputs.value }}
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Verify tag and version
+        id: version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          case "$TAG" in
+            v*-quad4.*) ;;
+            *) echo "Tag $TAG does not match the release pattern" >&2; exit 1 ;;
+          esac
+          expected="v$(cat prosody.release)"
+          if [ "$TAG" != "$expected" ]; then
+            echo "Tag $TAG does not match prosody.release ($expected)" >&2
+            exit 1
+          fi
+          git fetch origin master --depth=1 || true
+          if ! git merge-base --is-ancestor "$TAG" origin/master; then
+            echo "Tag $TAG is not an ancestor of origin/master" >&2
+            exit 1
+          fi
+          echo "value=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build artifacts
+    needs: verify
+    uses: ./.github/workflows/build.yml # zizmor: ignore[self-repository] $/ is not accepted by actionlint
+    with:
+      version: ${{ needs.verify.outputs.version }}
+    permissions:
+      contents: read # checkout
+      packages: write # push image and signatures to ghcr.io
+      id-token: write # keyless signing
+      attestations: write # store provenance attestation
+
+  publish:
+    name: Publish draft release
+    needs: [verify, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write # create GitHub release
+      id-token: write # keyless signing
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      VERSION: ${{ needs.verify.outputs.version }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Download artifacts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: prosodyx-*
+          merge-multiple: true
+          path: dist
+
+      - name: Sign release assets
+        run: |
+          set -euo pipefail
+          cd dist
+          for asset in *; do
+            case "$asset" in
+              *.sigstore.json) continue ;;
+            esac
+            cosign sign-blob --yes \
+              --bundle "${asset}.sigstore.json" \
+              "$asset"
+          done
+          cp ../vex/prosodyx.openvex.json "prosodyx-${VERSION}.openvex.json"
+          cosign sign-blob --yes \
+            --bundle "prosodyx-${VERSION}.openvex.json.sigstore.json" \
+            "prosodyx-${VERSION}.openvex.json"
+
+      - name: Create draft release
+        env:
+          IMAGE_DIGEST: ${{ needs.build.outputs.image-digest }}
+        run: |
+          set -euo pipefail
+          cd dist
+          notes_file=$(mktemp)
+          {
+            echo "## prosodyx $VERSION"
+            echo
+            echo "Hardened Prosody XMPP server, based on upstream Prosody ${VERSION%%-*}."
+            echo
+            echo "### Container"
+            echo
+            echo "\`\`\`"
+            echo "podman run ghcr.io/quad4-software/prosodyx:$VERSION"
+            echo "\`\`\`"
+            echo
+            echo "Image digest: $IMAGE_DIGEST"
+            echo
+            echo "### Verify"
+            echo
+            echo "Source tarball provenance:"
+            echo "\`\`\`"
+            echo "gh attestation verify prosodyx-${VERSION}-source.tar.gz --repo Quad4-Software/prosodyx"
+            echo "\`\`\`"
+            echo
+            echo "Image signature:"
+            echo "\`\`\`"
+            echo "cosign verify ghcr.io/quad4-software/prosodyx@${IMAGE_DIGEST} \\"
+            echo "  --certificate-identity-regexp 'https://github.com/Quad4-Software/prosodyx/.github/workflows/build.yml@refs/tags/.*' \\"
+            echo "  --certificate-oidc-issuer https://token.actions.githubusercontent.com"
+            echo "\`\`\`"
+            echo
+            echo "Image attestations (SBOM, VEX, provenance):"
+            echo "\`\`\`"
+            echo "cosign verify-attestation --type cyclonedx ghcr.io/quad4-software/prosodyx@${IMAGE_DIGEST} \\"
+            echo "  --certificate-identity-regexp 'https://github.com/Quad4-Software/prosodyx/.github/workflows/build.yml@refs/tags/.*' \\"
+            echo "  --certificate-oidc-issuer https://token.actions.githubusercontent.com"
+            echo "\`\`\`"
+            echo
+            echo "Release asset signatures:"
+            echo "\`\`\`"
+            echo "cosign verify-blob --bundle prosodyx-${VERSION}-source.tar.gz.sigstore.json \\"
+            echo "  --certificate-identity-regexp 'https://github.com/Quad4-Software/prosodyx/.github/workflows/release.yml@refs/tags/.*' \\"
+            echo "  --certificate-oidc-issuer https://token.actions.githubusercontent.com \\"
+            echo "  prosodyx-${VERSION}-source.tar.gz"
+            echo "\`\`\`"
+          } > "$notes_file"
+          gh release create "$TAG" \
+            --draft --verify-tag \
+            --title "prosodyx $VERSION" \
+            --notes-file "$notes_file" \
+            ./*
+
+      - name: Publish release
+        run: |
+          gh release edit "$TAG" --draft=false
