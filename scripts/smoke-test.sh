@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Smoke test for the prosodyx container image.
-# Usage: smoke-test.sh <image>
+# Usage: [ENGINE=podman|docker] smoke-test.sh <image>
 # Builds a throwaway self-signed certificate, starts the image with a
 # read-only root filesystem, and checks startup, TLS policy and the
 # health check. Requires podman or docker and openssl on the host.
@@ -10,7 +10,7 @@ set -euo pipefail
 image=${1:?usage: smoke-test.sh <image>}
 name="prosodyx-smoke-$$"
 work=$(mktemp -d)
-engine=$(command -v podman || command -v docker)
+engine=${ENGINE:-$(command -v podman || command -v docker)}
 
 cleanup() {
 	"$engine" rm -f "$name" >/dev/null 2>&1 || true
@@ -25,12 +25,19 @@ openssl req -x509 -newkey rsa:2048 -nodes \
 	-days 1 -subj "/CN=localhost" >/dev/null 2>&1
 chmod 0644 "$work/certs/localhost.key"
 
+data_opts=Z
+if [ "$(basename "$engine")" = docker ]; then
+	chmod 0777 "$work/data"
+else
+	data_opts=U,Z
+fi
+
 "$engine" run -d --name "$name" \
 	--cap-drop=all --security-opt=no-new-privileges --read-only \
 	--tmpfs /tmp:rw,noexec,nosuid,size=16m \
 	-e PROSODYX_DOMAIN=localhost \
 	-v "$work/certs:/etc/prosody/certs:ro,Z" \
-	-v "$work/data:/var/lib/prosody:U,Z" \
+	-v "$work/data:/var/lib/prosody:$data_opts" \
 	-p 127.0.0.1:15222:5222 \
 	"$image" >/dev/null
 
