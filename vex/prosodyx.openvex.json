@@ -1,0 +1,9 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/Quad4-Software/prosodyx/vex/prosodyx",
+  "author": "Quad4 Software",
+  "role": "Product VEX issuer",
+  "timestamp": "2026-10-30T00:00:00Z",
+  "version": 1,
+  "statements": []
+}
