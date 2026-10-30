@@ -32,7 +32,6 @@ modules_enabled = {
 
 	-- Admin interfaces
 		--"admin_adhoc"; -- Allows administration via an XMPP client that supports ad-hoc commands
-		--"admin_telnet"; -- Opens telnet console interface on localhost port 5582
 
 	-- HTTP modules
 		--"bosh"; -- Enable BOSH clients, aka "Jabber over HTTP"
@@ -47,7 +46,6 @@ modules_enabled = {
 		--"welcome"; -- Welcome users who register accounts
 		--"watchregistrations"; -- Alert admins of registrations
 		--"motd"; -- Send a message to users when they log in
-		--"legacyauth"; -- Legacy authentication. Only used by some old clients and bots.
 		--"proxy65"; -- Enables a file transfer proxy service which clients behind NAT can use
 		"lastactivity";
 		"external_services";
@@ -55,11 +53,6 @@ modules_enabled = {
 		"tombstones";
 		"user_account_management";
 
-	-- Required for integration testing
-		"debug_reset";
-
-	-- Useful for testing
-		--"scansion_record"; -- Records things that happen in scansion test case format
 }
 
 contact_info = {

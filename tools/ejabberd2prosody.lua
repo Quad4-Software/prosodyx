@@ -279,7 +279,6 @@ local filters = {
 			io.write([[Host "*"
 	modules_enabled = {
 		"saslauth"; -- Authentication for clients and servers. Recommended if you want to log in.
-		"legacyauth"; -- Legacy authentication. Only used by some old clients and bots.
 		"roster"; -- Allow users to have a roster. Recommended ;)
 		"register"; -- Allow users to register on this server using a client
 		"tls"; -- Add support for secure TLS on c2s/s2s connections
