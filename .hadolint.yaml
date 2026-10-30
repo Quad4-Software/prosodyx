@@ -1,0 +1,4 @@
+ignored:
+  # Wolfi is a rolling package repository. Old package versions are
+  # removed, so exact version pinning would break the build.
+  - DL3018
