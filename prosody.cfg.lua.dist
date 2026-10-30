@@ -44,7 +44,6 @@ modules_enabled = {
 		"blocklist"; -- Allow users to block communications with other users
 		"bookmarks"; -- Synchronise the list of open rooms between clients
 		"carbons"; -- Keep multiple online clients in sync
-		"dialback"; -- Support for verifying remote servers using DNS
 		"limits"; -- Enable bandwidth limiting for XMPP connections
 		"pep"; -- Allow users to store public and private data in their account
 		"private"; -- Legacy account storage mechanism (XEP-0049)
@@ -79,12 +78,12 @@ modules_enabled = {
 	-- Other specific functionality
 		--"announce"; -- Send announcement to all online users
 		--"groups"; -- Shared roster support
-		--"mimicking"; -- Prevent address spoofing
+		"mimicking"; -- Prevent address spoofing
 		--"motd"; -- Send a message to users when they log in
 		--"proxy65"; -- Enables a file transfer proxy service which clients behind NAT can use
 		--"s2s_bidi"; -- Bi-directional server-to-server (XEP-0288)
 		--"server_contact_info"; -- Publish contact information for this service
-		--"tombstones"; -- Prevent registration of deleted accounts
+		"tombstones"; -- Prevent registration of deleted accounts
 		--"watchregistrations"; -- Alert admins of registrations
 		--"welcome"; -- Welcome users who register accounts
 }
@@ -103,6 +102,11 @@ modules_disabled = {
 -- If false, other methods such as dialback (DNS) may be used instead.
 
 s2s_secure_auth = true
+
+-- Require encryption on client and server connections. STARTTLS is
+-- mandatory for clients, and for s2s this is implied by s2s_secure_auth.
+c2s_require_encryption = true
+s2s_require_encryption = true
 
 -- Some servers have invalid or self-signed certificates. You can list
 -- remote domains here that will not be required to authenticate using
@@ -129,6 +133,43 @@ limits = {
 		rate = "30kb/s";
 	};
 }
+
+-- Stanza size limits (bytes). Stanzas larger than this are rejected.
+c2s_stanza_size_limit = 128 * 1024
+s2s_stanza_size_limit = 256 * 1024
+
+-- How long unauthenticated connections may stay open, and how long to
+-- wait for a stream to close cleanly before forcing it.
+c2s_timeout = "2 minutes"
+s2s_timeout = 60
+c2s_close_timeout = 5
+s2s_close_timeout = 5
+
+-- Maximum size of an HTTP request body handled by Prosody itself.
+http_max_content_size = 1024 * 1024
+
+-- HTTP endpoints bind to loopback only. Change http_interfaces (or set
+-- http_external_url) if you enable HTTP modules that must be reachable.
+http_interfaces = { "127.0.0.1", "::1" }
+
+-- Use the epoll network backend on Linux.
+network_backend = "epoll"
+
+-- File permissions for files Prosody creates.
+umask = "027"
+
+-- Run in the foreground. Service managers and containers supervise the
+-- process directly, so daemonizing and pidfiles are off.
+daemonize = false
+pidfile = false
+
+-- In-band account registration is disabled. The "register" module stays
+-- enabled so existing accounts can still change their passwords.
+allow_registration = false
+
+-- SASL mechanisms that are never offered. Plaintext password mechanisms
+-- are disabled even over TLS, SCRAM mechanisms remain available.
+disable_sasl_mechanisms = { "PLAIN", "DIGEST-MD5" }
 
 -- Authentication
 -- Select the authentication backend to use. The 'internal' providers
@@ -185,10 +226,11 @@ archive_expires_after = "1w" -- Remove archived messages after 1 week
 -- Logging configuration
 -- For advanced logging see https://prosody.im/doc/logging
 log = {
-	info = "prosody.log"; -- Change 'info' to 'debug' for verbose logging
-	error = "prosody.err";
+	-- Log levels to console only. Useful when running in the foreground
+	-- or in a container where stdout is collected by the runtime.
+	info = "*console"; -- Change 'info' to 'debug' for verbose logging
+	error = "*console";
 	-- "*syslog"; -- Uncomment this for logging to syslog
-	-- "*console"; -- Log to the console, useful for debugging when running in the foreground
 }
 
 
@@ -206,6 +248,14 @@ log = {
 
 -- Location of directory to find certificates in (relative to main config file):
 certificates = "certs"
+
+-- TLS settings applied to all services
+ssl = {
+	protocol = "tlsv1_2+"; -- TLS 1.2 and 1.3 only
+	ciphers = "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305";
+	curveslist = { "X25519", "P-384", "P-256" };
+	options = { "no_compression", "no_ticket", "cipher_server_preference", "no_renegotiation" };
+}
 
 ----------- Virtual hosts -----------
 -- You need to add a VirtualHost entry for each domain you wish Prosody to serve.
