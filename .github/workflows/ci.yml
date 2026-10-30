@@ -91,7 +91,6 @@ jobs:
             VERSION=ci
             REVISION=${{ github.sha }}
             CREATED=1970-01-01T00:00:00Z
-            SOURCE_DATE_EPOCH=${{ github.event.head_commit.timestamp }}
 
       - name: Smoke test
         run: bash scripts/smoke-test.sh prosodyx:ci

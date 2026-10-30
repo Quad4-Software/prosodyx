@@ -49,10 +49,18 @@ jobs:
           scripts/gen-sbom.sh > "prosodyx-${VERSION}-sbom.cyclonedx.json"
 
       - name: Attest source tarball
+        id: attest-source
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: prosodyx-${{ inputs.version }}-source.tar.gz
           provenance-name: prosodyx-${{ inputs.version }}-source-provenance
+
+      - name: Keep provenance bundle
+        env:
+          VERSION: ${{ inputs.version }}
+          BUNDLE: ${{ steps.attest-source.outputs.bundle-path }}
+        run: |
+          cp "$BUNDLE" "prosodyx-${VERSION}-source.tar.gz.provenance.jsonl"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -62,6 +70,7 @@ jobs:
             prosodyx-${{ inputs.version }}-source.tar.gz
             prosodyx-${{ inputs.version }}-source.tar.gz.sha256
             prosodyx-${{ inputs.version }}-sbom.cyclonedx.json
+            prosodyx-${{ inputs.version }}-source.tar.gz.provenance.jsonl
           retention-days: 5
 
   image:
