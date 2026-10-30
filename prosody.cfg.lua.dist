@@ -158,9 +158,8 @@ network_backend = "epoll"
 -- File permissions for files Prosody creates.
 umask = "027"
 
--- Run in the foreground. Service managers and containers supervise the
--- process directly, so daemonizing and pidfiles are off.
-daemonize = false
+-- Run in the foreground. The process is supervised directly, so no
+-- pidfile is written.
 pidfile = false
 
 -- In-band account registration is disabled. The "register" module stays

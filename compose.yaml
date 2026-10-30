@@ -1,0 +1,30 @@
+# Rootless deployment for prosodyx. Set PROSODYX_DOMAIN and provide
+# certificates in ./certs (or adjust the certs bind mount).
+
+name: prosodyx
+
+services:
+  prosodyx:
+    image: ghcr.io/quad4-software/prosodyx:latest
+    user: "65532:65532"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    pids_limit: 256
+    mem_limit: 512m
+    restart: unless-stopped
+    environment:
+      PROSODYX_DOMAIN: ${PROSODYX_DOMAIN:?set PROSODYX_DOMAIN}
+    ports:
+      - "5222:5222/tcp"
+      - "5269:5269/tcp"
+    volumes:
+      - prosodyx-data:/var/lib/prosody
+      - ./certs:/etc/prosody/certs:ro
+
+volumes:
+  prosodyx-data:

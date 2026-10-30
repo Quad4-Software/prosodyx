@@ -1,0 +1,11 @@
+.git
+.hg
+.github
+docs
+doc
+spec
+tools
+tests
+*.md
+README
+prosodyx-scratch-*

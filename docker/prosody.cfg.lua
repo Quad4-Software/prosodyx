@@ -88,7 +88,6 @@ network_backend = "epoll"
 
 umask = "027"
 
-daemonize = false
 pidfile = false
 
 log = {
